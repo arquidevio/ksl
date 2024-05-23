@@ -1,7 +1,7 @@
 namespace Ksl.Kustomize
 
 #r "nuget: Fake.Core.Process, 6.0.0"
-#r "nuget: Yzl, 2.0.0"
+#r "nuget: Yzl"
 #load "Yaml.fsx"
 
 open Fake.Core
