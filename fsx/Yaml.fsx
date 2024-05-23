@@ -1,7 +1,7 @@
 namespace Ksl.Yaml
 
-#r "nuget: Yzl, 2.0.0"
-#r "nuget: YamlDotNet, 15.1.0"
+#r "nuget: Yzl"
+#r "nuget: YamlDotNet"
 
 open System.IO
 open YamlDotNet.RepresentationModel
