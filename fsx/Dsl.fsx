@@ -138,7 +138,6 @@ module Dsl =
 [<AutoOpen>]
 module Builder =
 
-  [<RequireQualifiedAccess>]
   module Mold =
     open Yzl
     open Dsl
