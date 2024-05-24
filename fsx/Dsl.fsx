@@ -198,5 +198,5 @@ module Builder =
       /// Ensures a transformer in Kustomization file in the current directory.
       let transformer path = KustomizeTransformer (".", path)
 
-      /// Ensures a images in Kustomization file in the current directory.
-      let images path name newName newTag = KustomizeImage (".", name, newName, newTag)
+      /// Ensures an image in Kustomization file in the current directory.
+      let image name newName newTag = KustomizeImage (".", name, newName, newTag)
