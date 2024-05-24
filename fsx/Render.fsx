@@ -72,6 +72,7 @@ module RenderTo =
       | KustomizePatchFile (dir, patchPath) -> PatchFile patchPath +>> fullPath dir |> edit
       | KustomizeComponent (dir, componentPath) -> Component componentPath +>> fullPath dir |> edit
       | KustomizeTransformer (dir, transformerPath) -> Transformer transformerPath +>> fullPath dir |> edit
+      | KustomizeImage (dir, name, newName, newTag) -> Image(name, newName, newTag) +>> fullPath dir |> edit
 
       | MergeYzl (path, func) ->
         let fullP = fullPath path

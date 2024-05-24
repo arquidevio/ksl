@@ -13,6 +13,7 @@ module Types =
   | Transformer of path: string
   | Component of path: string
   | PatchFile of path: string
+  | Image of name:string * newName:string * newTag: string
   type Mod = 
   | Add of part:KustomizePart * kustomizationDir: string
   | Remove of part:KustomizePart * kustomizationDir: string
@@ -47,8 +48,8 @@ module Kustomize =
        |> Proc.run
     result.Result.Output
 
-  let setImage workingDir name newTag =
-    runKustomize workingDir ["edit"; "set"; "image"; sprintf "%s=%s:%s" name "*" newTag]
+  let setImage workingDir name (newName: string option) newTag =
+    runKustomize workingDir ["edit"; "set"; "image"; sprintf "%s=%s:%s" name (newName |> Option.defaultValue "*") newTag]
 
   let addResource workingDir resourcePath =
     runKustomize workingDir ["edit"; "add"; "resource"; resourcePath]
@@ -80,6 +81,7 @@ module Kustomize =
     | Remove (Resource path, dir) -> removeResource dir path
     | Add (PatchFile path, dir) -> addPatchFile dir path
     | Add (Transformer path, dir) -> addTransformer dir path
+    | Add (Image(name, newName, newTag), dir) -> setImage dir name (Some(newName)) newTag
     | x -> failwithf $"Kustomize: operation {x} is not supported"
 
   let fix workingDir =

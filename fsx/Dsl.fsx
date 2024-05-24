@@ -131,6 +131,7 @@ module Dsl =
     | KustomizePatchFile of kustomizationPath: string * patchPath: string
     | KustomizeComponent of kustomizationPath: string * componentPath: string
     | KustomizeTransformer of kustomizationPath: string * transformerPath: string
+    | KustomizeImage of kustomizationPath: string * name: string * newName: string * newTag: string
     | MergeYzl of path: string * func: (unit -> Node)
     | MergeEnv of path: string * map: (string * string) list
     | NoPath of path: string
@@ -196,3 +197,6 @@ module Builder =
 
       /// Ensures a transformer in Kustomization file in the current directory.
       let transformer path = KustomizeTransformer (".", path)
+
+      /// Ensures a images in Kustomization file in the current directory.
+      let images path name newName newTag = KustomizeImage (".", name, newName, newTag)
