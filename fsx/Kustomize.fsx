@@ -73,9 +73,6 @@ module Kustomize =
     let addComponent workingDir (componentPath: string) =
         runKustomize workingDir [ "edit"; "add"; "component"; componentPath ]
 
-    let removeComponent workingDir (componentPath: string) =
-        runKustomize workingDir [ "edit"; "remove"; "component"; componentPath ]
-
     let addTransformer workingDir (transformerPath: string) =
         let kpath = workingDir + "/" + "kustomization.yaml"
         kpath |> Yaml.EditInPlace2 ![ "transformers" .= [ transformerPath ] ]
@@ -87,7 +84,6 @@ module Kustomize =
     let modify (spec: Mod) =
         match spec with
         | Add(Component path, dir) -> addComponent dir path
-        | Remove(Component path, dir) -> removeComponent dir path
         | Add(Generator path, dir) -> addGenerator dir path
         | Add(Resource path, dir) -> addResource dir path
         | Remove(Resource path, dir) -> removeResource dir path
