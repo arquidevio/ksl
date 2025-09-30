@@ -1,7 +1,8 @@
 namespace Ksl.Yaml
 
-#r "nuget: Yzl"
-#r "nuget: YamlDotNet"
+#r "paket: 
+      nuget Yzl ~> 2
+      nuget YamlDotNet ~> 16"
 
 open System.IO
 open YamlDotNet.RepresentationModel
