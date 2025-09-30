@@ -9,47 +9,46 @@ open System.IO
 open Yzl
 
 let items = Yzl.seq
-let item= Yzl.str
+let item = Yzl.str
 
 
 let testA =
     test "MergeYzl should use Yzl magic indentation" {
 
-        
+
         let outDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
-        
+
         Directory.CreateDirectory outDir |> ignore
 
-        let yaml = 
-            items [ 
-                    [ item !|-
-                               """
+        let yaml =
+            items
+                [ [ item
+                        !|-"""
                                  - one: A
                                    other: []
-                               """
-                    ]
-            ] |> Yzl.render
+                               """ ] ]
+            |> Yzl.render
+
         let testOutputPath = Path.Combine(outDir, "test.yaml")
         (testOutputPath, yaml) |> File.WriteAllText
         File.ReadAllText testOutputPath |> printfn "%s"
 
-        dir "." [
-            File.mergeYzl "test.yaml" <| fun () -> ![
-                items [
-                        [
-                             item !|-
-                               """
+        dir
+            "."
+            [ File.mergeYzl "test.yaml"
+              <| fun () ->
+                  ![ items
+                         [ [ item
+                                 !|-"""
                                  - test: value
                                    some: []
-                               """
-                        ]
-                ]
-            ]
-        ] |> RenderTo.fileSystem outDir
+                               """ ] ] ] ]
+        |> RenderTo.fileSystem outDir
 
         let actual = File.ReadAllText testOutputPath
+
         let expected =
-           """items:
+            """items:
 - item: |-
     - one: A
       other: []
@@ -58,8 +57,8 @@ let testA =
       some: []
 """
 
-        "Should have correct content" |> Expect.equal actual expected  
-        
+        "Should have correct content" |> Expect.equal actual expected
+
     }
 
 runTestsWithCLIArgs [] [||] ([ testA ] |> testList "Tests")
