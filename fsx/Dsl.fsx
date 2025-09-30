@@ -1,6 +1,6 @@
 namespace Ksl
 
-#r "nuget: Yzl"
+#r "paket: nuget Yzl ~> 2"
 
 open System.Text.RegularExpressions
 
