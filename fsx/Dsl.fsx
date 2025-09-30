@@ -9,7 +9,7 @@ module Types =
 
     module Utils =
         let (|ParseRegex|_|) regex str =
-            let m = Regex(regex).Match(str)
+            let m = Regex(regex).Match str
 
             if m.Success then
                 Some(List.tail [ for x in m.Groups -> x.Value ])
@@ -113,7 +113,7 @@ module Conventions =
               Namespace = app |> x.AppNamespace }
 
         static member Default =
-            { AppName = fun app -> app.AppPath.Split("/") |> Array.last
+            { AppName = fun app -> app.AppPath.Split "/" |> Array.last
               AppDirPath = fun app -> AppDirPath app.AppPath
               AppImageName = fun app -> gitPath app.GitUrl
               AppNamespace = fun app -> app.AppPath.Replace("/", "-") }
@@ -129,9 +129,13 @@ module Dsl =
         | KustomizeResource of kustomizationPath: string * resourcePath: string
         | NoKustomizeResource of kustomizationPath: string * resourcePath: string
         | KustomizeGenerator of kustomizationPath: string * generatorPath: string
+        | NoKustomizeGenerator of kustomizationPath: string * generatorPath: string
         | KustomizePatchFile of kustomizationPath: string * patchPath: string
+        | NoKustomizePatchFile of kustomizationPath: string * patchPath: string
         | KustomizeComponent of kustomizationPath: string * componentPath: string
+        | NoKustomizeComponent of kustomizationPath: string * componentPath: string
         | KustomizeTransformer of kustomizationPath: string * transformerPath: string
+        | NoKustomizeTransformer of kustomizationPath: string * transformerPath: string
         | KustomizeImage of kustomizationPath: string * name: string * newName: string * newTag: string
         | MergeYzl of path: string * func: (unit -> Node)
         | MergeEnv of path: string * map: (string * string) list

@@ -19,16 +19,16 @@ module RenderTo =
         let rec exec m pwd =
 
             let fullPath (path: string) =
-                if Path.IsPathRooted(path) then path else pwd + "/" + path
+                if Path.IsPathRooted path then path else pwd + "/" + path
 
             let edit (spec, msg) =
                 printfn $"%s{msg}"
                 Kustomize.modify spec
 
             let ensureDir fullP =
-                if (not (Directory.Exists(fullP))) then
+                if not (Directory.Exists fullP) then
                     printfn $"Dir --> %s{fullP}"
-                    Directory.CreateDirectory(fullP) |> ignore
+                    Directory.CreateDirectory fullP |> ignore
 
             let getCwdFullPath path =
                 match pwd with
@@ -41,10 +41,10 @@ module RenderTo =
             | File(path, content) ->
                 let fullP = fullPath path
 
-                if (not (IO.File.Exists(fullP))) then
+                if not (IO.File.Exists fullP) then
                     printf $"File --> %s{fullP} "
                     IO.File.WriteAllText(fullP, content ())
-                    let fileInfo = FileInfo(fullP)
+                    let fileInfo = FileInfo fullP
 
                     if fileInfo.Name = "kustomization.yaml" then
                         Kustomize.fix fileInfo.DirectoryName
@@ -69,14 +69,18 @@ module RenderTo =
                 if DirectoryInfo(path).Exists then
                     Directory.Delete(path, true)
                 else if FileInfo(path).Exists then
-                    IO.File.Delete(path)
+                    IO.File.Delete path
 
             | KustomizeResource(dir, resourcePath) -> Resource resourcePath +>> fullPath dir |> edit
             | NoKustomizeResource(dir, resourcePath) -> Resource resourcePath ->> fullPath dir |> edit
             | KustomizeGenerator(dir, generatorPath) -> Generator generatorPath +>> fullPath dir |> edit
+            | NoKustomizeGenerator(dir, generatorPath) -> Generator generatorPath ->> fullPath dir |> edit
             | KustomizePatchFile(dir, patchPath) -> PatchFile patchPath +>> fullPath dir |> edit
+            | NoKustomizePatchFile(dir, patchPath) -> PatchFile patchPath ->> fullPath dir |> edit
             | KustomizeComponent(dir, componentPath) -> Component componentPath +>> fullPath dir |> edit
+            | NoKustomizeComponent(dir, componentPath) -> Component componentPath ->> fullPath dir |> edit
             | KustomizeTransformer(dir, transformerPath) -> Transformer transformerPath +>> fullPath dir |> edit
+            | NoKustomizeTransformer(dir, transformerPath) -> Transformer transformerPath ->> fullPath dir |> edit
             | KustomizeImage(dir, name, newName, newTag) -> Image(name, newName, newTag) +>> fullPath dir |> edit
 
             | MergeYzl(path, func) ->
@@ -95,9 +99,9 @@ module RenderTo =
                         x.Split('=', 2, StringSplitOptions.RemoveEmptyEntries &&& StringSplitOptions.TrimEntries)
                         |> Seq.toList
                         |> function
-                            | [ a; b ] -> (a, b)
-                            | [ a ] -> (a, "")
-                            | _ -> ("", "")
+                            | [ a; b ] -> a, b
+                            | [ a ] -> a, ""
+                            | _ -> "", ""
                         |> KeyValuePair)
                     |> Dictionary<string, string>
 
