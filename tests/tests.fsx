@@ -13,42 +13,44 @@ let item = Yzl.str
 
 
 let testA =
-    test "MergeYzl should use Yzl magic indentation" {
+  test "MergeYzl should use Yzl magic indentation" {
 
 
-        let outDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
+    let outDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
 
-        Directory.CreateDirectory outDir |> ignore
+    Directory.CreateDirectory outDir |> ignore
 
-        let yaml =
-            items
-                [ [ item
-                        !|-"""
-                                 - one: A
-                                   other: []
-                               """ ] ]
-            |> Yzl.render
+    let yaml =
+      items [
+        [ item
+            !|-"
+               - one: A
+                 other: []
+               " ]
+      ]
+      |> Yzl.render
 
-        let testOutputPath = Path.Combine(outDir, "test.yaml")
-        (testOutputPath, yaml) |> File.WriteAllText
-        File.ReadAllText testOutputPath |> printfn "%s"
+    let testOutputPath = Path.Combine(outDir, "test.yaml")
+    (testOutputPath, yaml) |> File.WriteAllText
+    File.ReadAllText testOutputPath |> printfn "%s"
 
-        dir
-            "."
-            [ File.mergeYzl "test.yaml"
-              <| fun () ->
-                  ![ items
-                         [ [ item
-                                 !|-"""
-                                 - test: value
-                                   some: []
-                               """ ] ] ] ]
-        |> RenderTo.fileSystem outDir
+    dir "." [
+      File.mergeYzl "test.yaml" [
+        ![ items [
+             [ item
+                 !|-"
+                    - test: value
+                      some: []
+                    " ]
+           ] ]
+      ]
+    ]
+    |> RenderTo.fileSystem outDir
 
-        let actual = File.ReadAllText testOutputPath
+    let actual = File.ReadAllText testOutputPath
 
-        let expected =
-            """items:
+    let expected =
+      """items:
 - item: |-
     - one: A
       other: []
@@ -57,8 +59,8 @@ let testA =
       some: []
 """
 
-        "Should have correct content" |> Expect.equal actual expected
+    "Should have correct content" |> Expect.equal actual expected
 
-    }
+  }
 
 runTestsWithCLIArgs [] [||] ([ testA ] |> testList "Tests")
