@@ -132,9 +132,10 @@ module Dsl =
     | KustomizeComponent of kustomizationPath: string * componentPath: string
     | KustomizeTransformer of kustomizationPath: string * transformerPath: string
     | KustomizeImage of kustomizationPath: string * name: string * newName: string * newTag: string
-    | MergeYzl of path: string * func: (unit -> Node list)
-    | MergeEnv of path: string * map: (string * string) list
-    | NoPath of path: string
+    | MergeYzl of filePath: string * func: (unit -> Node list)
+    | MergeEnv of filePath: string * map: (string * string) list
+    | NoYamlPath of filePath: string * jsonPointer: string
+    | NoPath of filePath: string
 
 [<AutoOpen>]
 module Builder =
@@ -178,6 +179,8 @@ module Builder =
 
       /// Ensures a patch of an existing .env file.
       let mergeEnv (path: string) (keyValues: (string * string) list) = MergeEnv(path, keyValues)
+
+      let noYamlPath (filePath: string) (jsonPointer: string) = NoYamlPath(filePath, jsonPointer)
 
     [<RequireQualifiedAccess>]
     module Kustomize =

@@ -70,7 +70,7 @@ module RenderTo =
           Directory.Delete(path, true)
         else if FileInfo(path).Exists then
           IO.File.Delete path
-
+      | NoYamlPath(filePath, jsonPointer) -> Yaml.removeNode filePath jsonPointer
       | KustomizeResource(dir, resourcePath) -> Resource resourcePath +>> fullPath dir |> edit
       | KustomizeGenerator(dir, generatorPath) -> Generator generatorPath +>> fullPath dir |> edit
       | KustomizePatchFile(dir, patchPath) -> PatchFile patchPath +>> fullPath dir |> edit

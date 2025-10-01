@@ -13,6 +13,7 @@ open System.Collections.Generic
 
 [<RequireQualifiedAccess>]
 module Yaml =
+  open System.Text.RegularExpressions
 
   let private withStyle (style: ScalarStyle) (node: YamlScalarNode) =
     node.Style <- style
@@ -159,3 +160,164 @@ module Yaml =
       stream.Documents.[0].RootNode |> mergeFromYzl n |> ignore
 
     stream |> saveFile filePath
+
+  let removeNode (filePath: string) (jsonPath: string) =
+    let stream = loadFile filePath
+    let doc = stream.Documents.[0]
+
+    let parseSegment (seg: string) =
+      // Match [key=value] or [key="value"] or [value] (scalar match)
+      let predicateMatch =
+        Regex.Match(seg, @"^\[([^=]+)=(?:""([^""]*)""|'([^']*)'|([^\]]+))\]$")
+
+      let scalarMatch = Regex.Match(seg, @"^\[(?:""([^""]*)""|'([^']*)'|([^\]]+))\]$")
+
+      if predicateMatch.Success then
+        let key = predicateMatch.Groups.[1].Value
+
+        let value =
+          if predicateMatch.Groups.[2].Success then
+            predicateMatch.Groups.[2].Value
+          elif predicateMatch.Groups.[3].Success then
+            predicateMatch.Groups.[3].Value
+          else
+            predicateMatch.Groups.[4].Value
+
+        None, Some(key, value)
+      elif scalarMatch.Success then
+        // Scalar match - no key, just value
+        let value =
+          if scalarMatch.Groups.[1].Success then
+            scalarMatch.Groups.[1].Value
+          elif scalarMatch.Groups.[2].Success then
+            scalarMatch.Groups.[2].Value
+          else
+            scalarMatch.Groups.[3].Value
+
+        None, Some(null, value) // null key indicates scalar match
+      else
+        Some seg, None
+
+    let segments =
+      Regex.Split(jsonPath, @"\.(?![^\[]*\])")
+      |> Array.filter (fun s -> s <> "")
+      |> Array.map parseSegment
+      |> Array.toList
+
+    let rec navigate (node: YamlNode) segments =
+      match segments with
+      | [] -> failwith "Empty path"
+      | [ None, Some(predKey, predVal) ] ->
+        // Just a predicate means we're in a sequence already
+        match node with
+        | :? YamlSequenceNode as sequence ->
+          let idx =
+            sequence.Children
+            |> Seq.findIndex (fun child ->
+              match child with
+              | :? YamlMappingNode as m when predKey <> null ->
+                // Object predicate
+                match m.Children.TryGetValue(YamlScalarNode predKey) with
+                | true, v when (v :?> YamlScalarNode).Value = predVal -> true
+                | _ -> false
+              | :? YamlScalarNode as s when predKey = null ->
+                // Scalar predicate
+                s.Value = predVal
+              | _ -> false)
+
+          sequence.Children.RemoveAt idx
+        | _ -> failwith "Predicate requires sequence"
+      | (Some key, None) :: rest ->
+        if List.isEmpty rest then
+          // Last segment - try to remove
+          match node with
+          | :? YamlMappingNode as mapping -> mapping.Children.Remove(YamlScalarNode key) |> ignore
+          | :? YamlSequenceNode as sequence -> sequence.Children.RemoveAt(int key)
+          | _ -> failwithf "Cannot remove from %s" (node.GetType().Name)
+        else
+          // Keep navigating
+          let next =
+            match node with
+            | :? YamlMappingNode as mapping -> mapping.Children.[YamlScalarNode key]
+            | :? YamlSequenceNode as sequence -> sequence.Children.[int key]
+            | _ -> failwith "Invalid path"
+
+          navigate next rest
+      | (None, Some(predKey, predVal)) :: rest when predKey = null ->
+        // Scalar sequence matching
+        if List.isEmpty rest then
+          // Last segment - remove the scalar
+          match node with
+          | :? YamlSequenceNode as sequence ->
+            // Debug: see what's actually in the sequence
+            sequence.Children
+            |> Seq.iter (fun c ->
+              printfn
+                "Child type: %s, value: %A"
+                (c.GetType().Name)
+                (match c with
+                 | :? YamlScalarNode as s -> s.Value
+                 | _ -> "not scalar"))
+
+            let idx =
+              sequence.Children
+              |> Seq.findIndex (fun child ->
+                match child with
+                | :? YamlScalarNode as s when s.Value = predVal -> true
+                | _ -> false)
+
+            sequence.Children.RemoveAt idx
+          | _ -> failwith "Scalar predicate requires sequence"
+        else
+          // Navigate to matching scalar
+          let next =
+            match node with
+            | :? YamlSequenceNode as sequence ->
+              sequence.Children
+              |> Seq.find (fun child ->
+                match child with
+                | :? YamlScalarNode as s when s.Value = predVal -> true
+                | _ -> false)
+            | _ -> failwith "Scalar predicate requires sequence"
+
+          navigate next rest
+
+      | (None, Some(predKey, predVal)) :: rest ->
+        // Find matching item in current sequence
+        let next =
+          match node with
+          | :? YamlSequenceNode as sequence ->
+            sequence.Children
+            |> Seq.find (fun child ->
+              match child with
+              | :? YamlMappingNode as m ->
+                match m.Children.TryGetValue(YamlScalarNode predKey) with
+                | true, v when (v :?> YamlScalarNode).Value = predVal -> true
+                | _ -> false
+              | _ -> false)
+          | _ -> failwith "Predicate requires sequence"
+
+        navigate next rest
+      | (Some key, Some(predKey, predVal)) :: rest ->
+        // Key followed by predicate - key should point to sequence
+        let sequence =
+          match node with
+          | :? YamlMappingNode as mapping -> mapping.Children.[YamlScalarNode key] :?> YamlSequenceNode
+          | _ -> failwith "Expected mapping"
+
+        let next =
+          sequence.Children
+          |> Seq.find (fun child ->
+            match child with
+            | :? YamlMappingNode as m ->
+              match m.Children.TryGetValue(YamlScalarNode predKey) with
+              | true, v when (v :?> YamlScalarNode).Value = predVal -> true
+              | _ -> false
+            | _ -> false)
+
+        navigate next rest
+      | (None, None) :: _ -> failwithf "Unreachable"
+
+    navigate doc.RootNode segments
+
+    saveFile filePath stream
