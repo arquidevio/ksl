@@ -137,7 +137,7 @@ module Dsl =
         | KustomizeTransformer of kustomizationPath: string * transformerPath: string
         | NoKustomizeTransformer of kustomizationPath: string * transformerPath: string
         | KustomizeImage of kustomizationPath: string * name: string * newName: string * newTag: string
-        | MergeYzl of path: string * func: (unit -> Node)
+        | MergeYzl of path: string * func: (unit -> Node list)
         | MergeEnv of path: string * map: (string * string) list
         | NoPath of path: string
 
@@ -179,7 +179,7 @@ module Builder =
             let fromYzl (path: string) (yaml: NamedNode list) = File(path, fun () -> Yzl.render yaml)
 
             /// Ensures a patch of an existing YAML file.
-            let mergeYzl (path: string) (func: unit -> Node) = MergeYzl(path, func)
+            let mergeYzl (path: string) (nodes: Node list) = MergeYzl(path, fun () -> nodes)
 
             /// Ensures a patch of an existing .env file.
             let mergeEnv (path: string) (keyValues: (string * string) list) = MergeEnv(path, keyValues)

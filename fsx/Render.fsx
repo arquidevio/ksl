@@ -86,7 +86,7 @@ module RenderTo =
             | MergeYzl(path, func) ->
                 let fullP = fullPath path
                 printfn $"YamlMerge --> %s{fullP}"
-                fullP |> Yaml.EditInPlace2(func ())
+                fullP |> Yaml.editInPlace (func ())
 
             | MergeEnv(path, map) ->
                 let fullP = fullPath path

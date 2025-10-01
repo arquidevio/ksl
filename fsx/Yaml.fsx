@@ -19,7 +19,7 @@ module Yaml =
         node
 
     /// Converts Yzl tree into YamlDotNet
-    let FromYzl (sourceStart: Mark) (node: Node) =
+    let fromYzl (sourceStart: Mark) (node: Node) =
         let rec traverse =
             function
             | MapNode xs ->
@@ -78,7 +78,7 @@ module Yaml =
         | :? YamlScalarNode as x -> ScalarNode x
         | _ -> failwithf "Node %s is not supported" (node.NodeType |> string)
 
-    let MergeFromYzl (source: Node) (target: YamlNode) =
+    let mergeFromYzl (source: Node) (target: YamlNode) =
 
         let kv (node: NamedNode) =
             let (Named(Name key, value)) = node
@@ -128,7 +128,7 @@ module Yaml =
             | Yzl.Core.SeqNode xs, SeqNode s ->
                 xs
                 |> Seq.iter (fun n ->
-                    let xn = n |> FromYzl target.Start
+                    let xn = n |> fromYzl target.Start
 
                     if not <| s.Children.Contains xn then
                         s.Children.Add xn
@@ -136,13 +136,13 @@ module Yaml =
                         parentMapWithKey |> Option.iter (fun (k, m) -> m.Children.[k] <- xn))
 
                 s :> YamlNode
-            | Yzl.Core.Scalar _ as z, ScalarNode _ -> z |> FromYzl target.Start
-            | Yzl.Core.Scalar _ as z, null -> z |> FromYzl target.Start
+            | Yzl.Core.Scalar _ as z, ScalarNode _ -> z |> fromYzl target.Start
+            | Yzl.Core.Scalar _ as z, null -> z |> fromYzl target.Start
             | a, b -> failwithf "Merge failed. Node type mismatch: %A vs %A" a b
 
         traverse source target None
 
-    let LoadFile (path: string) =
+    let loadFile (path: string) =
         use file = File.OpenRead path
         use reader = new StreamReader(file)
         let yaml = YamlStream()
@@ -151,12 +151,15 @@ module Yaml =
 
     let private serializer = SerializerBuilder().Build()
 
-    let SaveFile (path: string) (yaml: YamlStream) =
+    let saveFile (path: string) (yaml: YamlStream) =
         use file = File.Open(path, FileMode.Create)
         use writer = new StreamWriter(file)
         serializer.Serialize(writer, yaml.Documents.[0].RootNode)
 
-    let EditInPlace2 (func: Node) (filePath: string) =
-        let stream = LoadFile filePath
-        stream.Documents.[0].RootNode |> MergeFromYzl func |> ignore
-        stream |> SaveFile filePath
+    let editInPlace (nodes: Node list) (filePath: string) =
+        let stream = loadFile filePath
+
+        for n in nodes do
+            stream.Documents.[0].RootNode |> mergeFromYzl n |> ignore
+
+        stream |> saveFile filePath
