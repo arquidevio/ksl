@@ -161,7 +161,7 @@ module Yaml =
 
     stream |> saveFile filePath
 
-  let removeNode (filePath: string) (jsonPath: string) =
+  let removeNode (filePath: string) (jsonPaths: string list) =
     let stream = loadFile filePath
     let doc = stream.Documents.[0]
 
@@ -197,12 +197,6 @@ module Yaml =
         None, Some(null, value) // null key indicates scalar match
       else
         Some seg, None
-
-    let segments =
-      Regex.Split(jsonPath, @"\.(?![^\[]*\])")
-      |> Array.filter (fun s -> s <> "")
-      |> Array.map parseSegment
-      |> Array.toList
 
     let rec navigate (node: YamlNode) segments =
       match segments with
@@ -318,6 +312,13 @@ module Yaml =
         navigate next rest
       | (None, None) :: _ -> failwithf "Unreachable"
 
-    navigate doc.RootNode segments
+    for jp in jsonPaths do
+      let segments =
+        Regex.Split(jp, @"\.(?![^\[]*\])")
+        |> Array.filter (fun s -> s <> "")
+        |> Array.map parseSegment
+        |> Array.toList
+
+      navigate doc.RootNode segments
 
     saveFile filePath stream

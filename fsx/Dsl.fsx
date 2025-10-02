@@ -134,7 +134,7 @@ module Dsl =
     | KustomizeImage of kustomizationPath: string * name: string * newName: string * newTag: string
     | MergeYzl of filePath: string * func: (unit -> Node list)
     | MergeEnv of filePath: string * map: (string * string) list
-    | NoYamlPath of filePath: string * jsonPointer: string
+    | NoYamlPath of filePath: string * jsonPaths: string list
     | NoPath of filePath: string
 
 [<AutoOpen>]
@@ -180,7 +180,8 @@ module Builder =
       /// Ensures a patch of an existing .env file.
       let mergeEnv (path: string) (keyValues: (string * string) list) = MergeEnv(path, keyValues)
 
-      let noYamlPath (filePath: string) (jsonPointer: string) = NoYamlPath(filePath, jsonPointer)
+      /// Ensure the file doesn't have paths defined by jsonPaths list. The json path format is the same as in kustomize replacements
+      let noYamlPath (filePath: string) (jsonPaths: string list) = NoYamlPath(filePath, jsonPaths)
 
     [<RequireQualifiedAccess>]
     module Kustomize =

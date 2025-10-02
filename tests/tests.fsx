@@ -68,7 +68,7 @@ let inline prepareFile< ^a when (^a or Node): (static member ToYzl: ^a -> Node)>
     let testOutputPath, tmpDir =
       items [ [ "name" .= "test"; "value" .= "123" ] ] |> prepareFile "test.yaml"
 
-    dir "." [ "items.0.value" |> File.noYamlPath testOutputPath ]
+    dir "." [ ["items.0.value"] |> File.noYamlPath testOutputPath ]
     |> RenderTo.fileSystem tmpDir
 
     let actual = File.ReadAllText testOutputPath
@@ -86,7 +86,7 @@ let inline prepareFile< ^a when (^a or Node): (static member ToYzl: ^a -> Node)>
       items [ [ "name" .= "first" ]; [ "name" .= "second" ]; [ "name" .= "third" ] ]
       |> prepareFile "test.yaml"
 
-    dir "." [ "items.1" |> File.noYamlPath testOutputPath ]
+    dir "." [ ["items.1"] |> File.noYamlPath testOutputPath ]
     |> RenderTo.fileSystem tmpDir
 
     let actual = File.ReadAllText testOutputPath
@@ -108,7 +108,7 @@ let inline prepareFile< ^a when (^a or Node): (static member ToYzl: ^a -> Node)>
       ]
       |> prepareFile "test.yaml"
 
-    dir "." [ "items.[name=dev]" |> File.noYamlPath testOutputPath ]
+    dir "." [ ["items.[name=dev]"] |> File.noYamlPath testOutputPath ]
     |> RenderTo.fileSystem tmpDir
 
     let actual = File.ReadAllText testOutputPath
@@ -128,7 +128,7 @@ let inline prepareFile< ^a when (^a or Node): (static member ToYzl: ^a -> Node)>
         .= [ "host" .= "localhost"; "port" .= "5432"; "password" .= "secret" ] ]
       |> prepareFile "test.yaml"
 
-    dir "." [ "database.password" |> File.noYamlPath testOutputPath ]
+    dir "." [ ["database.password"] |> File.noYamlPath testOutputPath ]
     |> RenderTo.fileSystem tmpDir
 
     let actual = File.ReadAllText testOutputPath
@@ -149,7 +149,7 @@ let inline prepareFile< ^a when (^a or Node): (static member ToYzl: ^a -> Node)>
              [ "name" .= "dev"; "config" .= [ "timeout" .= "10"; "retries" .= "1" ] ] ] ]
       |> prepareFile "test.yaml"
 
-    dir "." [ "servers.[name=prod].config.retries" |> File.noYamlPath testOutputPath ]
+    dir "." [ ["servers.[name=prod].config.retries"] |> File.noYamlPath testOutputPath ]
     |> RenderTo.fileSystem tmpDir
 
     let actual = File.ReadAllText testOutputPath
@@ -173,7 +173,7 @@ let inline prepareFile< ^a when (^a or Node): (static member ToYzl: ^a -> Node)>
       [ "version" .= "1.0"; "name" .= "myapp"; "debug" .= "true" ]
       |> prepareFile "test.yaml"
 
-    dir "." [ ".debug" |> File.noYamlPath testOutputPath ]
+    dir "." [ [".debug"] |> File.noYamlPath testOutputPath ]
     |> RenderTo.fileSystem tmpDir
 
     let actual = File.ReadAllText testOutputPath
@@ -191,7 +191,7 @@ name: myapp
       [ "items" .= [ [ "id" .= "1" ]; [ "id" .= "2" ] ]; "other" .= "data" ]
       |> prepareFile "test.yaml"
 
-    dir "." [ "items" |> File.noYamlPath testOutputPath ]
+    dir "." [ ["items"] |> File.noYamlPath testOutputPath ]
     |> RenderTo.fileSystem tmpDir
 
     let actual = File.ReadAllText testOutputPath
@@ -209,7 +209,7 @@ name: myapp
       [ "tags" .= [ "production"; "debug"; "experimental" ] ]
       |> prepareFile "test.yaml"
 
-    dir "." [ "tags.[debug]" |> File.noYamlPath testOutputPath ]
+    dir "." [ ["tags.[debug]"] |> File.noYamlPath testOutputPath ]
     |> RenderTo.fileSystem tmpDir
 
     let actual = File.ReadAllText testOutputPath
@@ -231,7 +231,7 @@ name: myapp
       ]
       |> prepareFile "test.yaml"
 
-    dir "." [ "items.[url=\"https://api.example.com\"]" |> File.noYamlPath testOutputPath ]
+    dir "." [ ["items.[url=\"https://api.example.com\"]"] |> File.noYamlPath testOutputPath ]
     |> RenderTo.fileSystem tmpDir
 
     let actual = File.ReadAllText testOutputPath
@@ -253,7 +253,7 @@ name: myapp
       ]
       |> prepareFile "test.yaml"
 
-    dir "." [ "items.[app.kubernetes.io/name=myapp]" |> File.noYamlPath testOutputPath ]
+    dir "." [ ["items.[app.kubernetes.io/name=myapp]"] |> File.noYamlPath testOutputPath ]
     |> RenderTo.fileSystem tmpDir
 
     let actual = File.ReadAllText testOutputPath
@@ -279,7 +279,7 @@ name: myapp
       |> prepareFile "test.yaml"
 
     dir "." [
-      "environments.[name=prod].servers.[hostname=prod-2]"
+      ["environments.[name=prod].servers.[hostname=prod-2]"]
       |> File.noYamlPath testOutputPath
     ]
     |> RenderTo.fileSystem tmpDir
@@ -306,7 +306,7 @@ name: myapp
       [ "commands" .= [ "npm start"; "npm test"; "npm run build" ] ]
       |> prepareFile "test.yaml"
 
-    dir "." [ "commands.[\"npm test\"]" |> File.noYamlPath testOutputPath ]
+    dir "." [ ["commands.[\"npm test\"]"] |> File.noYamlPath testOutputPath ]
     |> RenderTo.fileSystem tmpDir
 
     let actual = File.ReadAllText testOutputPath
@@ -325,7 +325,7 @@ name: myapp
       [ [ "name" .= "first" ]; [ "name" .= "second" ]; [ "name" .= "third" ] ]
       |> prepareFile "test.yaml"
 
-    dir "." [ "0" |> File.noYamlPath testOutputPath ] |> RenderTo.fileSystem tmpDir
+    dir "." [ ["0"] |> File.noYamlPath testOutputPath ] |> RenderTo.fileSystem tmpDir
 
     let actual = File.ReadAllText testOutputPath
 
@@ -346,7 +346,7 @@ name: myapp
                "config" .= [ "replicas" .= "5"; "autoscale" .= "false" ] ] ] ]
       |> prepareFile "test.yaml"
 
-    dir "." [ "clusters.[name=eu-west].config.autoscale" |> File.noYamlPath testOutputPath ]
+    dir "." [ ["clusters.[name=eu-west].config.autoscale"] |> File.noYamlPath testOutputPath ]
     |> RenderTo.fileSystem tmpDir
 
     let actual = File.ReadAllText testOutputPath
