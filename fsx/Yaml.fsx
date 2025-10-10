@@ -207,7 +207,7 @@ module Yaml =
         | :? YamlSequenceNode as sequence ->
           let idx =
             sequence.Children
-            |> Seq.findIndex (fun child ->
+            |> Seq.tryFindIndex (fun child ->
               match child with
               | :? YamlMappingNode as m when predKey <> null ->
                 // Object predicate
@@ -219,7 +219,7 @@ module Yaml =
                 s.Value = predVal
               | _ -> false)
 
-          sequence.Children.RemoveAt idx
+          idx |> Option.iter (fun idx -> sequence.Children.RemoveAt idx)
         | _ -> failwith "Predicate requires sequence"
       | (Some key, None) :: rest ->
         if List.isEmpty rest then
@@ -255,12 +255,12 @@ module Yaml =
 
             let idx =
               sequence.Children
-              |> Seq.findIndex (fun child ->
+              |> Seq.tryFindIndex (fun child ->
                 match child with
                 | :? YamlScalarNode as s when s.Value = predVal -> true
                 | _ -> false)
 
-            sequence.Children.RemoveAt idx
+            idx |> Option.iter (fun idx -> sequence.Children.RemoveAt idx)
           | _ -> failwith "Scalar predicate requires sequence"
         else
           // Navigate to matching scalar
@@ -268,13 +268,13 @@ module Yaml =
             match node with
             | :? YamlSequenceNode as sequence ->
               sequence.Children
-              |> Seq.find (fun child ->
+              |> Seq.tryFind (fun child ->
                 match child with
                 | :? YamlScalarNode as s when s.Value = predVal -> true
                 | _ -> false)
             | _ -> failwith "Scalar predicate requires sequence"
 
-          navigate next rest
+          next |> Option.iter (fun next -> navigate next rest)
 
       | (None, Some(predKey, predVal)) :: rest ->
         // Find matching item in current sequence
@@ -282,7 +282,7 @@ module Yaml =
           match node with
           | :? YamlSequenceNode as sequence ->
             sequence.Children
-            |> Seq.find (fun child ->
+            |> Seq.tryFind (fun child ->
               match child with
               | :? YamlMappingNode as m ->
                 match m.Children.TryGetValue(YamlScalarNode predKey) with
@@ -291,7 +291,7 @@ module Yaml =
               | _ -> false)
           | _ -> failwith "Predicate requires sequence"
 
-        navigate next rest
+        next |> Option.iter (fun next -> navigate next rest)
       | (Some key, Some(predKey, predVal)) :: rest ->
         // Key followed by predicate - key should point to sequence
         let sequence =
@@ -301,7 +301,7 @@ module Yaml =
 
         let next =
           sequence.Children
-          |> Seq.find (fun child ->
+          |> Seq.tryFind (fun child ->
             match child with
             | :? YamlMappingNode as m ->
               match m.Children.TryGetValue(YamlScalarNode predKey) with
@@ -309,7 +309,7 @@ module Yaml =
               | _ -> false
             | _ -> false)
 
-        navigate next rest
+        next |> Option.iter (fun next -> navigate next rest)
       | (None, None) :: _ -> failwithf "Unreachable"
 
     for jp in jsonPaths do
