@@ -61,17 +61,32 @@ module Kustomize =
     ]
 
   let addResource workingDir resourcePath =
-    runKustomize workingDir [ "edit"; "add"; "resource"; resourcePath ]
+    runKustomize workingDir [
+      "edit"
+      "add"
+      "resource"
+      resourcePath
+    ]
 
   let removeResource workingDir resourcePath =
-    runKustomize workingDir [ "edit"; "remove"; "resource"; resourcePath ]
+    runKustomize workingDir [
+      "edit"
+      "remove"
+      "resource"
+      resourcePath
+    ]
 
   let addGenerator workingDir (generatorPath: string) =
     let kpath = workingDir + "/" + "kustomization.yaml"
     kpath |> Yaml.editInPlace [ ![ "generators" .= [ generatorPath ] ] ]
 
   let addComponent workingDir (componentPath: string) =
-    runKustomize workingDir [ "edit"; "add"; "component"; componentPath ]
+    runKustomize workingDir [
+      "edit"
+      "add"
+      "component"
+      componentPath
+    ]
 
   let addTransformer workingDir (transformerPath: string) =
     let kpath = workingDir + "/" + "kustomization.yaml"
@@ -93,7 +108,11 @@ module Kustomize =
     | x -> failwithf $"Kustomize: operation {x} is not supported"
 
   let fix workingDir =
-    runKustomize workingDir [ "edit"; "fix"; "--vars" ]
+    runKustomize workingDir [
+      "edit"
+      "fix"
+      "--vars"
+    ]
 
   let build workingDir =
     runKustomizeWithResult workingDir [ "build" ]

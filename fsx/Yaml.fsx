@@ -161,10 +161,8 @@ module Yaml =
 
     stream |> saveFile filePath
 
-  let removeNode (filePath: string) (jsonPaths: string list) =
-    let stream = loadFile filePath
-    let doc = stream.Documents.[0]
 
+  let private removeNodeCore (doc: YamlDocument) (jsonPath: string) : bool =
     let parseSegment (seg: string) =
       // Match [key=value] or [key="value"] or [value] (scalar match)
       let predicateMatch =
@@ -198,7 +196,7 @@ module Yaml =
       else
         Some seg, None
 
-    let rec navigate (node: YamlNode) segments =
+    let rec navigate (node: YamlNode) segments : bool =
       match segments with
       | [] -> failwith "Empty path"
       | [ None, Some(predKey, predVal) ] ->
@@ -219,14 +217,20 @@ module Yaml =
                 s.Value = predVal
               | _ -> false)
 
-          idx |> Option.iter (fun idx -> sequence.Children.RemoveAt idx)
+          match idx with
+          | Some idx ->
+            sequence.Children.RemoveAt idx
+            true
+          | None -> false
         | _ -> failwith "Predicate requires sequence"
       | (Some key, None) :: rest ->
         if List.isEmpty rest then
           // Last segment - try to remove
           match node with
-          | :? YamlMappingNode as mapping -> mapping.Children.Remove(YamlScalarNode key) |> ignore
-          | :? YamlSequenceNode as sequence -> sequence.Children.RemoveAt(int key)
+          | :? YamlMappingNode as mapping -> mapping.Children.Remove(YamlScalarNode key)
+          | :? YamlSequenceNode as sequence ->
+            sequence.Children.RemoveAt(int key)
+            true
           | _ -> failwithf "Cannot remove from %s" (node.GetType().Name)
         else
           // Keep navigating
@@ -260,7 +264,11 @@ module Yaml =
                 | :? YamlScalarNode as s when s.Value = predVal -> true
                 | _ -> false)
 
-            idx |> Option.iter (fun idx -> sequence.Children.RemoveAt idx)
+            match idx with
+            | Some idx ->
+              sequence.Children.RemoveAt idx
+              true
+            | None -> false
           | _ -> failwith "Scalar predicate requires sequence"
         else
           // Navigate to matching scalar
@@ -274,7 +282,9 @@ module Yaml =
                 | _ -> false)
             | _ -> failwith "Scalar predicate requires sequence"
 
-          next |> Option.iter (fun next -> navigate next rest)
+          match next with
+          | Some next -> navigate next rest
+          | None -> false
 
       | (None, Some(predKey, predVal)) :: rest ->
         // Find matching item in current sequence
@@ -291,7 +301,9 @@ module Yaml =
               | _ -> false)
           | _ -> failwith "Predicate requires sequence"
 
-        next |> Option.iter (fun next -> navigate next rest)
+        match next with
+        | Some next -> navigate next rest
+        | None -> false
       | (Some key, Some(predKey, predVal)) :: rest ->
         // Key followed by predicate - key should point to sequence
         let sequence =
@@ -309,16 +321,32 @@ module Yaml =
               | _ -> false
             | _ -> false)
 
-        next |> Option.iter (fun next -> navigate next rest)
+        match next with
+        | Some next -> navigate next rest
+        | None -> false
       | (None, None) :: _ -> failwithf "Unreachable"
 
-    for jp in jsonPaths do
-      let segments =
-        Regex.Split(jp, @"\.(?![^\[]*\])")
-        |> Array.filter (fun s -> s <> "")
-        |> Array.map parseSegment
-        |> Array.toList
+    let segments =
+      Regex.Split(jsonPath, @"\.(?![^\[]*\])")
+      |> Array.filter (fun s -> s <> "")
+      |> Array.map parseSegment
+      |> Array.toList
 
-      navigate doc.RootNode segments
+    let isRemoved = navigate doc.RootNode segments
+    isRemoved
+
+  let removeNodes (filePath: string) (jsonPaths: string list) : unit =
+    let stream = loadFile filePath
+    let doc = stream.Documents.[0]
+
+    for jp in jsonPaths do
+      removeNodeCore doc jp |> ignore
 
     saveFile filePath stream
+
+  let removeNode (filePath: string) (jsonPath: string) : bool =
+    let stream = loadFile filePath
+    let doc = stream.Documents.[0]
+    let isRemoved = removeNodeCore doc jsonPath
+    saveFile filePath stream
+    isRemoved
