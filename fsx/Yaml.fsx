@@ -19,6 +19,44 @@ module Yaml =
     node.Style <- style
     node
 
+  let private parseSegment (seg: string) =
+    let predicateMatch =
+      Regex.Match(seg, @"^\[([^=]+)=(?:""([^""]*)""|'([^']*)'|([^\]]+))\]$")
+
+    let scalarMatch = Regex.Match(seg, @"^\[(?:""([^""]*)""|'([^']*)'|([^\]]+))\]$")
+
+    if predicateMatch.Success then
+      let key = predicateMatch.Groups.[1].Value
+
+      let value =
+        if predicateMatch.Groups.[2].Success then
+          predicateMatch.Groups.[2].Value
+        elif predicateMatch.Groups.[3].Success then
+          predicateMatch.Groups.[3].Value
+        else
+          predicateMatch.Groups.[4].Value
+
+      None, Some(key, value)
+    elif scalarMatch.Success then
+
+      let value =
+        if scalarMatch.Groups.[1].Success then
+          scalarMatch.Groups.[1].Value
+        elif scalarMatch.Groups.[2].Success then
+          scalarMatch.Groups.[2].Value
+        else
+          scalarMatch.Groups.[3].Value
+
+      None, Some(null, value)
+    else
+      Some seg, None
+
+  let private getSegments jsonPath =
+    Regex.Split(jsonPath, @"\.(?![^\[]*\])")
+    |> Array.filter (fun s -> s <> "")
+    |> Array.map parseSegment
+    |> Array.toList
+
   /// Converts Yzl tree into YamlDotNet
   let fromYzl (sourceStart: Mark) (node: Node) =
     let rec traverse =
@@ -71,6 +109,7 @@ module Yaml =
       | _ -> failwithf "Do not know"
 
     traverse node
+
 
   let (|MapNode|SeqNode|ScalarNode|) (node: YamlNode) =
     match node with
@@ -139,6 +178,66 @@ module Yaml =
 
     traverse source target None
 
+  let mergeFromYzlAtPath (source: Node) (target: YamlNode) (path: string) =
+    let segments =
+      if System.String.IsNullOrEmpty path then
+        []
+      else
+        getSegments path
+
+    let rec navigateTo (node: YamlNode) (segs: (string option * (string * string) option) list) =
+      match segs with
+      | [] -> node
+      | seg :: rest ->
+        match node, seg with
+
+        | MapNode m, (Some propName, None) ->
+          let key = YamlScalarNode propName
+          if m.Children.ContainsKey key then
+            navigateTo m.Children.[key] rest
+          else
+            failwithf "Path not found: property '%s' does not exist" propName
+        
+        | SeqNode s, (Some idx, None) ->
+          match System.Int32.TryParse idx with
+          | true, index when index >= 0 && index < s.Children.Count ->
+            navigateTo s.Children.[index] rest
+          | _ ->
+            failwithf "Invalid array index: '%s' (length %d)" idx s.Children.Count
+        
+        | SeqNode s, (None, Some(key, value)) when key <> null ->
+          let matchingNode =
+            s.Children
+            |> Seq.tryFind (fun child ->
+              match child with
+              | MapNode m ->
+                let searchKey = YamlScalarNode key
+                if m.Children.ContainsKey searchKey then
+                  match m.Children.[searchKey] with
+                  | ScalarNode scalar when scalar.Value = value -> true
+                  | _ -> false
+                else false
+              | _ -> false)
+          match matchingNode with
+          | Some n -> navigateTo n rest
+          | None -> failwithf "Sequence item with '%s=%s' not found" key value
+        
+        | SeqNode s, (None, Some(nullKey, value)) when nullKey = null ->
+          let matchingNode =
+            s.Children
+            |> Seq.tryFind (fun child ->
+              match child with
+              | ScalarNode scalar when scalar.Value = value -> true
+              | _ -> false)
+          match matchingNode with
+          | Some n -> navigateTo n rest
+          | None -> failwithf "Sequence item matching '%s' not found" value
+        
+        | _ -> failwithf "Path navigation failed: type mismatch at segment %A on node type %A" seg (node.GetType().Name)
+
+    let targetAtPath = navigateTo target segments
+    mergeFromYzl source targetAtPath |> ignore
+
   let loadFile (path: string) =
     use file = File.OpenRead path
     use reader = new StreamReader(file)
@@ -162,45 +261,17 @@ module Yaml =
     stream |> saveFile filePath
 
 
+  let editInPlaceAtPath (node: Node)  (jsonPath:string) (filePath: string) =
+    let stream = loadFile filePath
+    mergeFromYzlAtPath node stream.Documents.[0].RootNode jsonPath
+    stream |> saveFile filePath
+
   let private removeNodeCore (doc: YamlDocument) (jsonPath: string) : bool =
-    let parseSegment (seg: string) =
-      // Match [key=value] or [key="value"] or [value] (scalar match)
-      let predicateMatch =
-        Regex.Match(seg, @"^\[([^=]+)=(?:""([^""]*)""|'([^']*)'|([^\]]+))\]$")
-
-      let scalarMatch = Regex.Match(seg, @"^\[(?:""([^""]*)""|'([^']*)'|([^\]]+))\]$")
-
-      if predicateMatch.Success then
-        let key = predicateMatch.Groups.[1].Value
-
-        let value =
-          if predicateMatch.Groups.[2].Success then
-            predicateMatch.Groups.[2].Value
-          elif predicateMatch.Groups.[3].Success then
-            predicateMatch.Groups.[3].Value
-          else
-            predicateMatch.Groups.[4].Value
-
-        None, Some(key, value)
-      elif scalarMatch.Success then
-        // Scalar match - no key, just value
-        let value =
-          if scalarMatch.Groups.[1].Success then
-            scalarMatch.Groups.[1].Value
-          elif scalarMatch.Groups.[2].Success then
-            scalarMatch.Groups.[2].Value
-          else
-            scalarMatch.Groups.[3].Value
-
-        None, Some(null, value) // null key indicates scalar match
-      else
-        Some seg, None
 
     let rec navigate (node: YamlNode) segments : bool =
       match segments with
       | [] -> failwith "Empty path"
       | [ None, Some(predKey, predVal) ] ->
-        // Just a predicate means we're in a sequence already
         match node with
         | :? YamlSequenceNode as sequence ->
           let idx =
@@ -208,12 +279,10 @@ module Yaml =
             |> Seq.tryFindIndex (fun child ->
               match child with
               | :? YamlMappingNode as m when predKey <> null ->
-                // Object predicate
                 match m.Children.TryGetValue(YamlScalarNode predKey) with
                 | true, v when (v :?> YamlScalarNode).Value = predVal -> true
                 | _ -> false
               | :? YamlScalarNode as s when predKey = null ->
-                // Scalar predicate
                 s.Value = predVal
               | _ -> false)
 
@@ -225,7 +294,6 @@ module Yaml =
         | _ -> failwith "Predicate requires sequence"
       | (Some key, None) :: rest ->
         if List.isEmpty rest then
-          // Last segment - try to remove
           match node with
           | :? YamlMappingNode as mapping -> mapping.Children.Remove(YamlScalarNode key)
           | :? YamlSequenceNode as sequence ->
@@ -233,7 +301,6 @@ module Yaml =
             true
           | _ -> failwithf "Cannot remove from %s" (node.GetType().Name)
         else
-          // Keep navigating
           let next =
             match node with
             | :? YamlMappingNode as mapping -> mapping.Children.[YamlScalarNode key]
@@ -242,12 +309,9 @@ module Yaml =
 
           navigate next rest
       | (None, Some(predKey, predVal)) :: rest when predKey = null ->
-        // Scalar sequence matching
         if List.isEmpty rest then
-          // Last segment - remove the scalar
           match node with
           | :? YamlSequenceNode as sequence ->
-            // Debug: see what's actually in the sequence
             sequence.Children
             |> Seq.iter (fun c ->
               printfn
@@ -271,7 +335,6 @@ module Yaml =
             | None -> false
           | _ -> failwith "Scalar predicate requires sequence"
         else
-          // Navigate to matching scalar
           let next =
             match node with
             | :? YamlSequenceNode as sequence ->
@@ -287,7 +350,6 @@ module Yaml =
           | None -> false
 
       | (None, Some(predKey, predVal)) :: rest ->
-        // Find matching item in current sequence
         let next =
           match node with
           | :? YamlSequenceNode as sequence ->
@@ -305,7 +367,6 @@ module Yaml =
         | Some next -> navigate next rest
         | None -> false
       | (Some key, Some(predKey, predVal)) :: rest ->
-        // Key followed by predicate - key should point to sequence
         let sequence =
           match node with
           | :? YamlMappingNode as mapping -> mapping.Children.[YamlScalarNode key] :?> YamlSequenceNode
@@ -326,12 +387,7 @@ module Yaml =
         | None -> false
       | (None, None) :: _ -> failwithf "Unreachable"
 
-    let segments =
-      Regex.Split(jsonPath, @"\.(?![^\[]*\])")
-      |> Array.filter (fun s -> s <> "")
-      |> Array.map parseSegment
-      |> Array.toList
-
+    let segments = getSegments jsonPath
     let isRemoved = navigate doc.RootNode segments
     isRemoved
 

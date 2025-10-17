@@ -133,6 +133,7 @@ module Dsl =
     | KustomizeTransformer of kustomizationPath: string * transformerPath: string
     | KustomizeImage of kustomizationPath: string * name: string * newName: string * newTag: string
     | MergeYzl of filePath: string * func: (unit -> Node list)
+    | MergeYzlAt of filePath: string * func: (unit -> Node) * jsonPath: string
     | MergeEnv of filePath: string * map: (string * string) list
     | NoYamlPaths of filePath: string * jsonPaths: string list
     | NoYamlPath of filePath: string * jsonPath: string * onRemoved: (unit -> MoldSpec)
@@ -158,28 +159,31 @@ module Builder =
     module File =
 
       /// Ensures a file. The content is provided as a string list. The elements then are concatenated with EOL.
-      let fromLines (path: string) (content: string list) =
-        File(path, fun () -> content |> String.concat "\n")
+      let fromLines (filePath: string) (content: string list) =
+        File(filePath, fun () -> content |> String.concat "\n")
 
       /// Ensures a file. The content string is directly rendered as provided.
-      let fromString (path: string) (content: string) = File(path, fun () -> content)
+      let fromString (filePath: string) (content: string) = File(filePath, fun () -> content)
 
       /// Ensures a file. It defers the invocation of the content function until the spec execution.
       ///
       /// Useful if any parameters need to be dynamically fed when the spec gets applied.
-      let fromFunc (path: string) (content: unit -> string) = File(path, content)
+      let fromFunc (filePath: string) (content: unit -> string) = File(filePath, content)
 
       /// Ensures an empty file.
-      let empty (path: string) = File(path, fun () -> "")
+      let empty (filePath: string) = File(filePath, fun () -> "")
 
       /// Ensures a YAML file specified with Yzl.
-      let fromYzl (path: string) (yaml: NamedNode list) = File(path, fun () -> Yzl.render yaml)
+      let fromYzl (filePath: string) (yaml: NamedNode list) = File(filePath, fun () -> Yzl.render yaml)
 
       /// Ensures a patch of an existing YAML file.
-      let mergeYzl (path: string) (nodes: Node list) = MergeYzl(path, fun () -> nodes)
+      let mergeYzl (filePath: string) (nodes: Node list) = MergeYzl(filePath, fun () -> nodes)
+
+      /// Ensures a patch of an existing YAML file at a path
+      let mergeYzlAt (filePath: string) (yamlPath: string) (node: Node) = MergeYzlAt(filePath, (fun () -> node), yamlPath)
 
       /// Ensures a patch of an existing .env file.
-      let mergeEnv (path: string) (keyValues: (string * string) list) = MergeEnv(path, keyValues)
+      let mergeEnv (filePath: string) (keyValues: (string * string) list) = MergeEnv(filePath, keyValues)
 
       /// Ensure the file doesn't have paths defined by jsonPaths list. The json path format is the same as in kustomize replacements
       let noYamlPaths (filePath: string) (jsonPaths: string list) = NoYamlPaths(filePath, jsonPaths)
