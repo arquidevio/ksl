@@ -14,6 +14,7 @@ open System.Collections.Generic
 [<RequireQualifiedAccess>]
 module Yaml =
   open System.Text.RegularExpressions
+  open YamlDotNet.Core.Events
 
   let private withStyle (style: ScalarStyle) (node: YamlScalarNode) =
     node.Style <- style
@@ -62,21 +63,23 @@ module Yaml =
     let rec traverse =
       function
       | MapNode xs ->
-        YamlMappingNode(
+        let map = YamlMappingNode(
           seq {
             for Named(Name name, x) in xs do
               yield (YamlScalarNode name, traverse x) |> KeyValuePair<YamlNode, YamlNode>
           }
         )
-        :> YamlNode
+        map.Style <- MappingStyle.Block
+        map :> YamlNode
       | SeqNode xs ->
-        YamlSequenceNode(
+        let seq = YamlSequenceNode(
           seq {
             for x in xs do
               yield traverse x
           }
         )
-        :> YamlNode
+        seq.Style <- SequenceStyle.Block
+        seq :> YamlNode
       | Scalar s ->
         let scalar =
           match s with
@@ -126,8 +129,14 @@ module Yaml =
 
     let map =
       function
-      | Yzl.Core.MapNode _ -> YamlMappingNode() :> YamlNode
-      | Yzl.Core.SeqNode _ -> YamlSequenceNode() :> YamlNode
+      | Yzl.Core.MapNode _ ->
+        let map = YamlMappingNode()
+        map.Style <- MappingStyle.Block
+        map :> YamlNode
+      | Yzl.Core.SeqNode _ -> 
+        let seq = YamlSequenceNode()
+        seq.Style <- SequenceStyle.Block
+        seq :> YamlNode
       | Yzl.Core.Scalar _ -> YamlScalarNode() :> YamlNode
       | NoNode as z -> failwithf "Not supported %A" z
 
@@ -171,6 +180,7 @@ module Yaml =
           else
             parentMapWithKey |> Option.iter (fun (k, m) -> m.Children.[k] <- xn))
 
+        s.Style <- SequenceStyle.Block
         s :> YamlNode
       | Yzl.Core.Scalar _ as z, ScalarNode _ -> z |> fromYzl target.Start
       | Yzl.Core.Scalar _ as z, null -> z |> fromYzl target.Start

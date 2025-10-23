@@ -262,6 +262,26 @@ b: 2
     "Should merge into sequence item by predicate" |> Expect.equal actual expected
   }
 
+  test "Merge into empty sequence uses block style" {
+    let testOutputPath, tmpDir =
+      items []  // empty sequence
+      |> prepareFile "test.yaml"
+
+    let mergeYzl = items [ [ "name" .= "first" ] ]
+
+    dir "." [ File.mergeYzl testOutputPath [ !mergeYzl ] ]
+    |> RenderTo.fileSystem tmpDir
+
+    let actual = File.ReadAllText testOutputPath
+
+    let expected =
+      "items:
+- name: first
+"
+
+    "Should merge into empty sequence with block style not flow style"
+    |> Expect.equal actual expected
+  }
   ]
 |> testList "Merge Tests"
 |> runTestsWithCLIArgs [] [||]
