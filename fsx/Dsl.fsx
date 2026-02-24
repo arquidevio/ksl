@@ -174,13 +174,15 @@ module Builder =
       let empty (filePath: string) = File(filePath, fun () -> "")
 
       /// Ensures a YAML file specified with Yzl.
-      let fromYzl (filePath: string) (yaml: NamedNode list) = File(filePath, fun () -> Yzl.render yaml)
+      let fromYzl (filePath: string) (yaml: NamedNode list) =
+        File(filePath, fun () -> Yzl.render yaml)
 
       /// Ensures a patch of an existing YAML file.
       let mergeYzl (filePath: string) (nodes: Node list) = MergeYzl(filePath, fun () -> nodes)
 
       /// Ensures a patch of an existing YAML file at a path
-      let mergeYzlAt (filePath: string) (yamlPath: string) (node: Node) = MergeYzlAt(filePath, (fun () -> node), yamlPath)
+      let mergeYzlAt (filePath: string) (yamlPath: string) (node: Node) =
+        MergeYzlAt(filePath, (fun () -> node), yamlPath)
 
       /// Ensures a patch of an existing .env file.
       let mergeEnv (filePath: string) (keyValues: (string * string) list) = MergeEnv(filePath, keyValues)

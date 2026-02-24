@@ -63,21 +63,25 @@ module Yaml =
     let rec traverse =
       function
       | MapNode xs ->
-        let map = YamlMappingNode(
-          seq {
-            for Named(Name name, x) in xs do
-              yield (YamlScalarNode name, traverse x) |> KeyValuePair<YamlNode, YamlNode>
-          }
-        )
+        let map =
+          YamlMappingNode(
+            seq {
+              for Named(Name name, x) in xs do
+                yield (YamlScalarNode name, traverse x) |> KeyValuePair<YamlNode, YamlNode>
+            }
+          )
+
         map.Style <- MappingStyle.Block
         map :> YamlNode
       | SeqNode xs ->
-        let seq = YamlSequenceNode(
-          seq {
-            for x in xs do
-              yield traverse x
-          }
-        )
+        let seq =
+          YamlSequenceNode(
+            seq {
+              for x in xs do
+                yield traverse x
+            }
+          )
+
         seq.Style <- SequenceStyle.Block
         seq :> YamlNode
       | Scalar s ->
@@ -133,7 +137,7 @@ module Yaml =
         let map = YamlMappingNode()
         map.Style <- MappingStyle.Block
         map :> YamlNode
-      | Yzl.Core.SeqNode _ -> 
+      | Yzl.Core.SeqNode _ ->
         let seq = YamlSequenceNode()
         seq.Style <- SequenceStyle.Block
         seq :> YamlNode
@@ -203,18 +207,17 @@ module Yaml =
 
         | MapNode m, (Some propName, None) ->
           let key = YamlScalarNode propName
+
           if m.Children.ContainsKey key then
             navigateTo m.Children.[key] rest
           else
             failwithf "Path not found: property '%s' does not exist" propName
-        
+
         | SeqNode s, (Some idx, None) ->
           match System.Int32.TryParse idx with
-          | true, index when index >= 0 && index < s.Children.Count ->
-            navigateTo s.Children.[index] rest
-          | _ ->
-            failwithf "Invalid array index: '%s' (length %d)" idx s.Children.Count
-        
+          | true, index when index >= 0 && index < s.Children.Count -> navigateTo s.Children.[index] rest
+          | _ -> failwithf "Invalid array index: '%s' (length %d)" idx s.Children.Count
+
         | SeqNode s, (None, Some(key, value)) when key <> null ->
           let matchingNode =
             s.Children
@@ -222,16 +225,19 @@ module Yaml =
               match child with
               | MapNode m ->
                 let searchKey = YamlScalarNode key
+
                 if m.Children.ContainsKey searchKey then
                   match m.Children.[searchKey] with
                   | ScalarNode scalar when scalar.Value = value -> true
                   | _ -> false
-                else false
+                else
+                  false
               | _ -> false)
+
           match matchingNode with
           | Some n -> navigateTo n rest
           | None -> failwithf "Sequence item with '%s=%s' not found" key value
-        
+
         | SeqNode s, (None, Some(nullKey, value)) when nullKey = null ->
           let matchingNode =
             s.Children
@@ -239,10 +245,11 @@ module Yaml =
               match child with
               | ScalarNode scalar when scalar.Value = value -> true
               | _ -> false)
+
           match matchingNode with
           | Some n -> navigateTo n rest
           | None -> failwithf "Sequence item matching '%s' not found" value
-        
+
         | _ -> failwithf "Path navigation failed: type mismatch at segment %A on node type %A" seg (node.GetType().Name)
 
     let targetAtPath = navigateTo target segments
@@ -271,7 +278,7 @@ module Yaml =
     stream |> saveFile filePath
 
 
-  let editInPlaceAtPath (node: Node)  (jsonPath:string) (filePath: string) =
+  let editInPlaceAtPath (node: Node) (jsonPath: string) (filePath: string) =
     let stream = loadFile filePath
     mergeFromYzlAtPath node stream.Documents.[0].RootNode jsonPath
     stream |> saveFile filePath
@@ -292,8 +299,7 @@ module Yaml =
                 match m.Children.TryGetValue(YamlScalarNode predKey) with
                 | true, v when (v :?> YamlScalarNode).Value = predVal -> true
                 | _ -> false
-              | :? YamlScalarNode as s when predKey = null ->
-                s.Value = predVal
+              | :? YamlScalarNode as s when predKey = null -> s.Value = predVal
               | _ -> false)
 
           match idx with
