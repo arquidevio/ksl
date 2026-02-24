@@ -13,9 +13,9 @@ let item = Yzl.str<string>
 
 [ test "Merge simple scalar into map" {
     let testOutputPath, tmpDir =
-      [ "name" .= "original"; "value" .= "123" ] |> prepareFile "test.yaml"
+      [ "name" .= "original"; "value" .= 123 ] |> prepareFile "test.yaml"
 
-    let mergeYzl = [ "value" .= "456"; "extra" .= "new" ]
+    let mergeYzl = [ "value" .= 456; "extra" .= "new" ]
 
     dir "." [ File.mergeYzl testOutputPath [ !mergeYzl ] ]
     |> RenderTo.fileSystem tmpDir
@@ -33,10 +33,10 @@ extra: new
 
   test "Merge nested map" {
     let testOutputPath, tmpDir =
-      [ "config" .= [ "timeout" .= "30"; "retries" .= "3" ] ]
+      [ "config" .= [ "timeout" .= 30; "retries" .= 3 ] ]
       |> prepareFile "test.yaml"
 
-    let mergeYzl = [ "config" .= [ "retries" .= "5"; "maxConnections" .= "100" ] ]
+    let mergeYzl = [ "config" .= [ "retries" .= 5; "maxConnections" .= 100 ] ]
 
     dir "." [ File.mergeYzl testOutputPath [ !mergeYzl ] ]
     |> RenderTo.fileSystem tmpDir
@@ -78,11 +78,11 @@ extra: new
 
   test "MergeYzlAt - simple property path" {
     let testOutputPath, tmpDir =
-      [ "database" .= [ "host" .= "localhost"; "port" .= "5432" ]
-        "cache" .= [ "ttl" .= "3600" ] ]
+      [ "database" .= [ "host" .= "localhost"; "port" .= 5432 ]
+        "cache" .= [ "ttl" .= 3600 ] ]
       |> prepareFile "test.yaml"
 
-    let mergeYzl = ![ "host" .= "prod.db.com"; "maxConnections" .= "50" ]
+    let mergeYzl = ![ "host" .= "prod.db.com"; "maxConnections" .= 50 ]
 
     dir "." [ File.mergeYzlAt testOutputPath "database" mergeYzl ]
     |> RenderTo.fileSystem tmpDir
@@ -105,11 +105,11 @@ cache:
   test "MergeYzlAt - predicate-based path" {
     let testOutputPath, tmpDir =
       items
-        [ [ "name" .= "prod"; "port" .= "8080" ]
-          [ "name" .= "dev"; "port" .= "3000" ] ]
+        [ [ "name" .= "prod"; "port" .= 8080 ]
+          [ "name" .= "dev"; "port" .= 3000 ] ]
       |> prepareFile "test.yaml"
 
-    let mergeYzl = ![ "port" .= "8443"; "ssl" .= "true" ]
+    let mergeYzl = ![ "port" .= 8443; "ssl" .= true ]
 
     dir "." [ File.mergeYzlAt testOutputPath "items.[name=prod]" mergeYzl ]
     |> RenderTo.fileSystem tmpDir
@@ -131,10 +131,10 @@ cache:
   test "MergeYzlAt - simple nested property chain" {
     let testOutputPath, tmpDir =
       [ "servers"
-        .= [ [ "name" .= "primary"; "config" .= [ "timeout" .= "30"; "retries" .= "3" ] ] ] ]
+        .= [ [ "name" .= "primary"; "config" .= [ "timeout" .= 30; "retries" .= 3 ] ] ] ]
       |> prepareFile "test.yaml"
 
-    let mergeYzl = ![ "timeout" .= "60"; "maxQueue" .= "1000" ]
+    let mergeYzl = ![ "timeout" .= 60; "maxQueue" .= 1000 ]
 
     dir "." [ File.mergeYzlAt testOutputPath "servers.0.config" mergeYzl ]
     |> RenderTo.fileSystem tmpDir
@@ -156,8 +156,8 @@ cache:
   test "MergeYzlAt - array index path" {
     let testOutputPath, tmpDir =
       items
-        [ [ "id" .= "1"; "status" .= "active" ]
-          [ "id" .= "2"; "status" .= "inactive" ] ]
+        [ [ "id" .= 1; "status" .= "active" ]
+          [ "id" .= 2; "status" .= "inactive" ] ]
       |> prepareFile "test.yaml"
 
     let mergeYzl = ![ "status" .= "archived"; "archived_at" .= "2024-01-01" ]
@@ -180,9 +180,9 @@ cache:
   }
 
   test "MergeYzlAt with empty path targets root" {
-    let testOutputPath, tmpDir = [ "a" .= "1" ] |> prepareFile "test.yaml"
+    let testOutputPath, tmpDir = [ "a" .= 1 ] |> prepareFile "test.yaml"
 
-    let mergeYzl = ![ "b" .= "2" ]
+    let mergeYzl = ![ "b" .= 2 ]
 
     dir "." [ File.mergeYzlAt testOutputPath "" mergeYzl ]
     |> RenderTo.fileSystem tmpDir
@@ -200,8 +200,8 @@ b: 2
   test "MergeYzlAt - map in sequence by predicate" {
     let testOutputPath, tmpDir =
       [ "servers"
-        .= [ [ "hostname" .= "prod-1"; "port" .= "8080"; "status" .= "active" ]
-             [ "hostname" .= "prod-2"; "port" .= "8081"; "status" .= "inactive" ] ] ]
+        .= [ [ "hostname" .= "prod-1"; "port" .= 8080; "status" .= "active" ]
+             [ "hostname" .= "prod-2"; "port" .= 8081; "status" .= "inactive" ] ] ]
       |> prepareFile "test.yaml"
 
     let mergeYzl = ![ "status" .= "archived"; "lastSeen" .= "2024-01-01" ]

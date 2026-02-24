@@ -87,7 +87,7 @@ module Yaml =
       | Scalar s ->
         let scalar =
           match s with
-          | Bool x -> x |> string |> YamlScalarNode
+          | Bool x -> x |> string |> _.ToLowerInvariant() |> YamlScalarNode
           | Int x -> x |> string |> YamlScalarNode
           | Float x -> x |> string |> YamlScalarNode
           | Str s ->
