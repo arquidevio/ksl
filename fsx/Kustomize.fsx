@@ -37,18 +37,16 @@ module Kustomize =
     let kpath = workingDir |> kustomization
 
     let imageFields =
-      [ yield "name" .= name
-        match newName with
-        | Some n -> yield "newName" .= n
-        | None -> ()
-        yield "newTag" .= newTag ]
-
-    let imageNode = !imageFields
+      ![ "name" .= name
+         match newName with
+         | Some n -> "newName" .= n
+         | None -> ()
+         "newTag" .= newTag ]
 
     try
-      kpath |> Yaml.editInPlaceAtPath imageNode $"images.[name={name}]"
+      kpath |> Yaml.editInPlaceAtPath imageFields $"images.[name={name}]"
     with _ ->
-      kpath |> Yaml.editInPlace [ ![ "images" .= [ imageNode ] ] ]
+      kpath |> Yaml.editInPlace [ ![ "images" .= [ imageFields ] ] ]
 
   let addResource workingDir (resourcePath: string) =
     workingDir
