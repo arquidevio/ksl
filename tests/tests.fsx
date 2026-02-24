@@ -90,8 +90,8 @@ let item = Yzl.str
   test "Remove node - predicate with multiple matches" {
     let testOutputPath, tmpDir =
       items
-        [ [ "name" .= "prod"; "port" .= "8080" ]
-          [ "name" .= "dev"; "port" .= "3000" ] ]
+        [ [ "name" .= "prod"; "port" .= 8080 ]
+          [ "name" .= "dev"; "port" .= 3000 ] ]
       |> prepareFile "test.yaml"
 
     dir "." [ [ "items.[name=dev]" ] |> File.noYamlPaths testOutputPath ]
@@ -111,7 +111,7 @@ let item = Yzl.str
   test "Remove node - nested path" {
     let testOutputPath, tmpDir =
       [ "database"
-        .= [ "host" .= "localhost"; "port" .= "5432"; "password" .= "secret" ] ]
+        .= [ "host" .= "localhost"; "port" .= 5432; "password" .= "secret" ] ]
       |> prepareFile "test.yaml"
 
     dir "." [ [ "database.password" ] |> File.noYamlPaths testOutputPath ]
@@ -131,8 +131,8 @@ let item = Yzl.str
   test "Remove node - predicate mid-path" {
     let testOutputPath, tmpDir =
       [ "servers"
-        .= [ [ "name" .= "prod"; "config" .= [ "timeout" .= "30"; "retries" .= "3" ] ]
-             [ "name" .= "dev"; "config" .= [ "timeout" .= "10"; "retries" .= "1" ] ] ] ]
+        .= [ [ "name" .= "prod"; "config" .= [ "timeout" .= 30; "retries" .= 3 ] ]
+             [ "name" .= "dev"; "config" .= [ "timeout" .= 10; "retries" .= 1 ] ] ] ]
       |> prepareFile "test.yaml"
 
     dir "." [ [ "servers.[name=prod].config.retries" ] |> File.noYamlPaths testOutputPath ]
@@ -156,7 +156,7 @@ let item = Yzl.str
 
   test "Remove node - top level key" {
     let testOutputPath, tmpDir =
-      [ "version" .= "1.0"; "name" .= "myapp"; "debug" .= "true" ]
+      [ "version" .= "1.0"; "name" .= "myapp"; "debug" .= true ]
       |> prepareFile "test.yaml"
 
     dir "." [ [ ".debug" ] |> File.noYamlPaths testOutputPath ]
@@ -165,7 +165,7 @@ let item = Yzl.str
     let actual = File.ReadAllText testOutputPath
 
     let expected =
-      "version: 1.0
+      "version: '1.0'
 name: myapp
 "
 
@@ -174,7 +174,7 @@ name: myapp
 
   test "Remove node - entire array" {
     let testOutputPath, tmpDir =
-      [ "items" .= [ [ "id" .= "1" ]; [ "id" .= "2" ] ]; "other" .= "data" ]
+      [ "items" .= [ [ "id" .= 1 ]; [ "id" .= 2 ] ]; "other" .= "data" ]
       |> prepareFile "test.yaml"
 
     dir "." [ [ "items" ] |> File.noYamlPaths testOutputPath ]
@@ -245,7 +245,7 @@ name: myapp
     let expected =
       "items:
 - app.kubernetes.io/name: other
-  version: 2.0
+  version: '2.0'
 "
 
     "Should remove myapp item" |> Expect.equal actual expected
@@ -256,10 +256,10 @@ name: myapp
       [ "environments"
         .= [ [ "name" .= "prod"
                "servers"
-               .= [ [ "hostname" .= "prod-1"; "port" .= "8080" ]
-                    [ "hostname" .= "prod-2"; "port" .= "8081" ] ] ]
+               .= [ [ "hostname" .= "prod-1"; "port" .= 8080 ]
+                    [ "hostname" .= "prod-2"; "port" .= 8081 ] ] ]
              [ "name" .= "dev"
-               "servers" .= [ [ "hostname" .= "dev-1"; "port" .= "3000" ] ] ] ] ]
+               "servers" .= [ [ "hostname" .= "dev-1"; "port" .= 3000 ] ] ] ] ]
       |> prepareFile "test.yaml"
 
     dir
@@ -326,9 +326,9 @@ name: myapp
     let testOutputPath, tmpDir =
       [ "clusters"
         .= [ [ "name" .= "us-east"
-               "config" .= [ "replicas" .= "3"; "autoscale" .= "true" ] ]
+               "config" .= [ "replicas" .= 3; "autoscale" .= true ] ]
              [ "name" .= "eu-west"
-               "config" .= [ "replicas" .= "5"; "autoscale" .= "false" ] ] ] ]
+               "config" .= [ "replicas" .= 5; "autoscale" .= false ] ] ] ]
       |> prepareFile "test.yaml"
 
     dir

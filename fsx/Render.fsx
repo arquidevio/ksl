@@ -46,9 +46,6 @@ module RenderTo =
           IO.File.WriteAllText(fullP, content ())
           let fileInfo = FileInfo fullP
 
-          if fileInfo.Name = "kustomization.yaml" then
-            Kustomize.fix fileInfo.DirectoryName
-
           printfn "OK"
 
       | Dir(path, ms) ->
