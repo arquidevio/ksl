@@ -33,8 +33,19 @@ module Kustomize =
 
   let private kustomization rootDir = rootDir + "/" + "kustomization.yaml"
 
-  //TODO
-  let setImage workingDir name (newName: string option) newTag = ()
+  let setImage workingDir name (newName: string option) (newTag: string) =
+    let kpath = workingDir |> kustomization
+    let imageFields =
+      [ yield "name" .= name
+        match newName with
+        | Some n -> yield "newName" .= n
+        | None -> ()
+        yield "newTag" .= newTag ]
+    let imageNode = !imageFields
+    try
+      kpath |> Yaml.editInPlaceAtPath imageNode $"images.[name={name}]"
+    with _ ->
+      kpath |> Yaml.editInPlace [ ![ "images" .= [ imageNode ] ] ]
 
   let addResource workingDir (resourcePath: string) =
     workingDir
