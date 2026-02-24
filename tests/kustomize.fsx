@@ -9,8 +9,7 @@ open Yzl
 
 [ test "setImage - adds images section when none exists" {
     let testOutputPath, tmpDir =
-      [ "resources" .= [ "deployment.yaml" ] ]
-      |> prepareFile "kustomization.yaml"
+      [ "resources" .= [ "deployment.yaml" ] ] |> prepareFile "kustomization.yaml"
 
     Kustomize.setImage tmpDir "myapp" (Some "myregistry/myapp") "v1.0"
 

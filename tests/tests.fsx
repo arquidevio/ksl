@@ -89,9 +89,7 @@ let item = Yzl.str
 
   test "Remove node - predicate with multiple matches" {
     let testOutputPath, tmpDir =
-      items
-        [ [ "name" .= "prod"; "port" .= 8080 ]
-          [ "name" .= "dev"; "port" .= 3000 ] ]
+      items [ [ "name" .= "prod"; "port" .= 8080 ]; [ "name" .= "dev"; "port" .= 3000 ] ]
       |> prepareFile "test.yaml"
 
     dir "." [ [ "items.[name=dev]" ] |> File.noYamlPaths testOutputPath ]
@@ -110,8 +108,7 @@ let item = Yzl.str
 
   test "Remove node - nested path" {
     let testOutputPath, tmpDir =
-      [ "database"
-        .= [ "host" .= "localhost"; "port" .= 5432; "password" .= "secret" ] ]
+      [ "database" .= [ "host" .= "localhost"; "port" .= 5432; "password" .= "secret" ] ]
       |> prepareFile "test.yaml"
 
     dir "." [ [ "database.password" ] |> File.noYamlPaths testOutputPath ]
@@ -258,8 +255,7 @@ name: myapp
                "servers"
                .= [ [ "hostname" .= "prod-1"; "port" .= 8080 ]
                     [ "hostname" .= "prod-2"; "port" .= 8081 ] ] ]
-             [ "name" .= "dev"
-               "servers" .= [ [ "hostname" .= "dev-1"; "port" .= 3000 ] ] ] ] ]
+             [ "name" .= "dev"; "servers" .= [ [ "hostname" .= "dev-1"; "port" .= 3000 ] ] ] ] ]
       |> prepareFile "test.yaml"
 
     dir
@@ -325,10 +321,8 @@ name: myapp
   test "Remove node - nested predicate then key" {
     let testOutputPath, tmpDir =
       [ "clusters"
-        .= [ [ "name" .= "us-east"
-               "config" .= [ "replicas" .= 3; "autoscale" .= true ] ]
-             [ "name" .= "eu-west"
-               "config" .= [ "replicas" .= 5; "autoscale" .= false ] ] ] ]
+        .= [ [ "name" .= "us-east"; "config" .= [ "replicas" .= 3; "autoscale" .= true ] ]
+             [ "name" .= "eu-west"; "config" .= [ "replicas" .= 5; "autoscale" .= false ] ] ] ]
       |> prepareFile "test.yaml"
 
     dir

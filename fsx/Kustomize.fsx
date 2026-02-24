@@ -35,13 +35,16 @@ module Kustomize =
 
   let setImage workingDir name (newName: string option) (newTag: string) =
     let kpath = workingDir |> kustomization
+
     let imageFields =
       [ yield "name" .= name
         match newName with
         | Some n -> yield "newName" .= n
         | None -> ()
         yield "newTag" .= newTag ]
+
     let imageNode = !imageFields
+
     try
       kpath |> Yaml.editInPlaceAtPath imageNode $"images.[name={name}]"
     with _ ->

@@ -33,8 +33,7 @@ extra: new
 
   test "Merge nested map" {
     let testOutputPath, tmpDir =
-      [ "config" .= [ "timeout" .= 30; "retries" .= 3 ] ]
-      |> prepareFile "test.yaml"
+      [ "config" .= [ "timeout" .= 30; "retries" .= 3 ] ] |> prepareFile "test.yaml"
 
     let mergeYzl = [ "config" .= [ "retries" .= 5; "maxConnections" .= 100 ] ]
 
@@ -104,9 +103,7 @@ cache:
 
   test "MergeYzlAt - predicate-based path" {
     let testOutputPath, tmpDir =
-      items
-        [ [ "name" .= "prod"; "port" .= 8080 ]
-          [ "name" .= "dev"; "port" .= 3000 ] ]
+      items [ [ "name" .= "prod"; "port" .= 8080 ]; [ "name" .= "dev"; "port" .= 3000 ] ]
       |> prepareFile "test.yaml"
 
     let mergeYzl = ![ "port" .= 8443; "ssl" .= true ]
@@ -155,9 +152,7 @@ cache:
 
   test "MergeYzlAt - array index path" {
     let testOutputPath, tmpDir =
-      items
-        [ [ "id" .= 1; "status" .= "active" ]
-          [ "id" .= 2; "status" .= "inactive" ] ]
+      items [ [ "id" .= 1; "status" .= "active" ]; [ "id" .= 2; "status" .= "inactive" ] ]
       |> prepareFile "test.yaml"
 
     let mergeYzl = ![ "status" .= "archived"; "archived_at" .= "2024-01-01" ]
