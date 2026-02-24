@@ -1,12 +1,8 @@
 namespace Ksl.Kustomize
 
-#r "paket:
-      nuget Fake.Core.Process ~> 6
-      nuget Yzl ~> 2"
+#r "paket: nuget Yzl ~> 2"
 
 #load "Yaml.fsx"
-
-open Fake.Core
 
 module Types =
   type KustomizePart =
@@ -35,66 +31,51 @@ module Kustomize =
   open Ksl.Yaml
   open Types
 
-  let private create workingDir args =
-    RawCommand("kustomize", Arguments.OfArgs args)
-    |> CreateProcess.fromCommand
-    |> CreateProcess.withWorkingDirectory workingDir
+  let private kustomization rootDir = rootDir + "/" + "kustomization.yaml"
 
-  let private runKustomize workingDir args =
-    create workingDir args |> Proc.run |> ignore
+  let setImage workingDir name (newName: string option) (newTag: string) =
+    let kpath = workingDir |> kustomization
 
-  let private runKustomizeWithResult workingDir args =
-    let result =
-      create workingDir args
-      |> CreateProcess.redirectOutput
-      |> CreateProcess.ensureExitCode
-      |> Proc.run
+    let imageFields =
+      ![ "name" .= name
+         match newName with
+         | Some n -> "newName" .= n
+         | None -> ()
+         "newTag" .= newTag ]
 
-    result.Result.Output
+    try
+      kpath |> Yaml.editInPlaceAtPath imageFields $"images.[name={name}]"
+    with _ ->
+      kpath |> Yaml.editInPlace [ ![ "images" .= [ imageFields ] ] ]
 
-  let setImage workingDir name (newName: string option) newTag =
-    runKustomize workingDir [
-      "edit"
-      "set"
-      "image"
-      sprintf "%s=%s:%s" name (newName |> Option.defaultValue "*") newTag
-    ]
-
-  let addResource workingDir resourcePath =
-    runKustomize workingDir [
-      "edit"
-      "add"
-      "resource"
-      resourcePath
-    ]
+  let addResource workingDir (resourcePath: string) =
+    workingDir
+    |> kustomization
+    |> Yaml.editInPlace [ ![ "resources" .= [ resourcePath ] ] ]
 
   let removeResource workingDir resourcePath =
-    runKustomize workingDir [
-      "edit"
-      "remove"
-      "resource"
-      resourcePath
-    ]
+    let kpath = workingDir |> kustomization
+    Yaml.removeNode kpath $"resources.[{resourcePath}]" |> ignore
 
   let addGenerator workingDir (generatorPath: string) =
-    let kpath = workingDir + "/" + "kustomization.yaml"
-    kpath |> Yaml.editInPlace [ ![ "generators" .= [ generatorPath ] ] ]
+    workingDir
+    |> kustomization
+    |> Yaml.editInPlace [ ![ "generators" .= [ generatorPath ] ] ]
 
   let addComponent workingDir (componentPath: string) =
-    runKustomize workingDir [
-      "edit"
-      "add"
-      "component"
-      componentPath
-    ]
+    workingDir
+    |> kustomization
+    |> Yaml.editInPlace [ ![ "components" .= [ componentPath ] ] ]
 
   let addTransformer workingDir (transformerPath: string) =
-    let kpath = workingDir + "/" + "kustomization.yaml"
-    kpath |> Yaml.editInPlace [ ![ "transformers" .= [ transformerPath ] ] ]
+    workingDir
+    |> kustomization
+    |> Yaml.editInPlace [ ![ "transformers" .= [ transformerPath ] ] ]
 
   let addPatchFile workingDir (patchPath: string) =
-    let kpath = workingDir + "/" + "kustomization.yaml"
-    kpath |> Yaml.editInPlace [ ![ "patches" .= [ ![ "path" .= patchPath ] ] ] ]
+    workingDir
+    |> kustomization
+    |> Yaml.editInPlace [ ![ "patches" .= [ ![ "path" .= patchPath ] ] ] ]
 
   let modify (spec: Mod) =
     match spec with
@@ -106,13 +87,3 @@ module Kustomize =
     | Add(Transformer path, dir) -> addTransformer dir path
     | Add(Image(name, newName, newTag), dir) -> setImage dir name (Some newName) newTag
     | x -> failwithf $"Kustomize: operation {x} is not supported"
-
-  let fix workingDir =
-    runKustomize workingDir [
-      "edit"
-      "fix"
-      "--vars"
-    ]
-
-  let build workingDir =
-    runKustomizeWithResult workingDir [ "build" ]

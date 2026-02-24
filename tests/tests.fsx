@@ -1,5 +1,6 @@
 #load "common.fsx"
 #load "../fsx/Render.fsx"
+
 open Common
 open Expecto
 open Ksl
@@ -14,26 +15,24 @@ let item = Yzl.str
 [ test "MergeYzl should use Yzl magic indentation" {
 
     let testOutputPath, tmpDir =
-      items [
-        [ item
-            !|-"
+      items
+        [ [ item
+              !|-"
                - one: A
                  other: []
-               " ]
-      ]
+               " ] ]
       |> prepareFile "test.yaml"
 
-    dir "." [
-      File.mergeYzl "test.yaml" [
-        ![ items [
-             [ item
-                 !|-"
+    dir
+      "."
+      [ File.mergeYzl
+          "test.yaml"
+          [ ![ items
+                 [ [ item
+                       !|-"
                     - test: value
                       some: []
-                    " ]
-           ] ]
-      ]
-    ]
+                    " ] ] ] ] ]
     |> RenderTo.fileSystem tmpDir
 
     let actual = File.ReadAllText testOutputPath
@@ -54,11 +53,7 @@ let item = Yzl.str
 
   test "Remove node - simple key" {
     let testOutputPath, tmpDir =
-      items [
-        [ "name" .= "test"
-          "value" .= "123" ]
-      ]
-      |> prepareFile "test.yaml"
+      items [ [ "name" .= "test"; "value" .= "123" ] ] |> prepareFile "test.yaml"
 
     dir "." [ [ "items.0.value" ] |> File.noYamlPaths testOutputPath ]
     |> RenderTo.fileSystem tmpDir
@@ -75,11 +70,7 @@ let item = Yzl.str
 
   test "Remove node - by index" {
     let testOutputPath, tmpDir =
-      items [
-        [ "name" .= "first" ]
-        [ "name" .= "second" ]
-        [ "name" .= "third" ]
-      ]
+      items [ [ "name" .= "first" ]; [ "name" .= "second" ]; [ "name" .= "third" ] ]
       |> prepareFile "test.yaml"
 
     dir "." [ [ "items.1" ] |> File.noYamlPaths testOutputPath ]
@@ -98,12 +89,7 @@ let item = Yzl.str
 
   test "Remove node - predicate with multiple matches" {
     let testOutputPath, tmpDir =
-      items [
-        [ "name" .= "prod"
-          "port" .= "8080" ]
-        [ "name" .= "dev"
-          "port" .= "3000" ]
-      ]
+      items [ [ "name" .= "prod"; "port" .= 8080 ]; [ "name" .= "dev"; "port" .= 3000 ] ]
       |> prepareFile "test.yaml"
 
     dir "." [ [ "items.[name=dev]" ] |> File.noYamlPaths testOutputPath ]
@@ -122,10 +108,7 @@ let item = Yzl.str
 
   test "Remove node - nested path" {
     let testOutputPath, tmpDir =
-      [ "database"
-        .= [ "host" .= "localhost"
-             "port" .= "5432"
-             "password" .= "secret" ] ]
+      [ "database" .= [ "host" .= "localhost"; "port" .= 5432; "password" .= "secret" ] ]
       |> prepareFile "test.yaml"
 
     dir "." [ [ "database.password" ] |> File.noYamlPaths testOutputPath ]
@@ -145,14 +128,8 @@ let item = Yzl.str
   test "Remove node - predicate mid-path" {
     let testOutputPath, tmpDir =
       [ "servers"
-        .= [ [ "name" .= "prod"
-               "config"
-               .= [ "timeout" .= "30"
-                    "retries" .= "3" ] ]
-             [ "name" .= "dev"
-               "config"
-               .= [ "timeout" .= "10"
-                    "retries" .= "1" ] ] ] ]
+        .= [ [ "name" .= "prod"; "config" .= [ "timeout" .= 30; "retries" .= 3 ] ]
+             [ "name" .= "dev"; "config" .= [ "timeout" .= 10; "retries" .= 1 ] ] ] ]
       |> prepareFile "test.yaml"
 
     dir "." [ [ "servers.[name=prod].config.retries" ] |> File.noYamlPaths testOutputPath ]
@@ -176,9 +153,7 @@ let item = Yzl.str
 
   test "Remove node - top level key" {
     let testOutputPath, tmpDir =
-      [ "version" .= "1.0"
-        "name" .= "myapp"
-        "debug" .= "true" ]
+      [ "version" .= "1.0"; "name" .= "myapp"; "debug" .= true ]
       |> prepareFile "test.yaml"
 
     dir "." [ [ ".debug" ] |> File.noYamlPaths testOutputPath ]
@@ -187,7 +162,7 @@ let item = Yzl.str
     let actual = File.ReadAllText testOutputPath
 
     let expected =
-      "version: 1.0
+      "version: '1.0'
 name: myapp
 "
 
@@ -196,10 +171,7 @@ name: myapp
 
   test "Remove node - entire array" {
     let testOutputPath, tmpDir =
-      [ "items"
-        .= [ [ "id" .= "1" ]
-             [ "id" .= "2" ] ]
-        "other" .= "data" ]
+      [ "items" .= [ [ "id" .= 1 ]; [ "id" .= 2 ] ]; "other" .= "data" ]
       |> prepareFile "test.yaml"
 
     dir "." [ [ "items" ] |> File.noYamlPaths testOutputPath ]
@@ -217,10 +189,7 @@ name: myapp
 
   test "Remove node - scalar sequence by value" {
     let testOutputPath, tmpDir =
-      [ "tags"
-        .= [ "production"
-             "debug"
-             "experimental" ] ]
+      [ "tags" .= [ "production"; "debug"; "experimental" ] ]
       |> prepareFile "test.yaml"
 
     dir "." [ [ "tags.[debug]" ] |> File.noYamlPaths testOutputPath ]
@@ -239,12 +208,9 @@ name: myapp
 
   test "Remove node - predicate with quoted value" {
     let testOutputPath, tmpDir =
-      items [
-        [ "url" .= "https://api.example.com"
-          "name" .= "api" ]
-        [ "url" .= "https://web.example.com"
-          "name" .= "web" ]
-      ]
+      items
+        [ [ "url" .= "https://api.example.com"; "name" .= "api" ]
+          [ "url" .= "https://web.example.com"; "name" .= "web" ] ]
       |> prepareFile "test.yaml"
 
     dir "." [ [ "items.[url=\"https://api.example.com\"]" ] |> File.noYamlPaths testOutputPath ]
@@ -263,12 +229,9 @@ name: myapp
 
   test "Remove node - predicate with special chars in key" {
     let testOutputPath, tmpDir =
-      items [
-        [ "app.kubernetes.io/name" .= "myapp"
-          "version" .= "1.0" ]
-        [ "app.kubernetes.io/name" .= "other"
-          "version" .= "2.0" ]
-      ]
+      items
+        [ [ "app.kubernetes.io/name" .= "myapp"; "version" .= "1.0" ]
+          [ "app.kubernetes.io/name" .= "other"; "version" .= "2.0" ] ]
       |> prepareFile "test.yaml"
 
     dir "." [ [ "items.[app.kubernetes.io/name=myapp]" ] |> File.noYamlPaths testOutputPath ]
@@ -279,7 +242,7 @@ name: myapp
     let expected =
       "items:
 - app.kubernetes.io/name: other
-  version: 2.0
+  version: '2.0'
 "
 
     "Should remove myapp item" |> Expect.equal actual expected
@@ -290,20 +253,15 @@ name: myapp
       [ "environments"
         .= [ [ "name" .= "prod"
                "servers"
-               .= [ [ "hostname" .= "prod-1"
-                      "port" .= "8080" ]
-                    [ "hostname" .= "prod-2"
-                      "port" .= "8081" ] ] ]
-             [ "name" .= "dev"
-               "servers"
-               .= [ [ "hostname" .= "dev-1"
-                      "port" .= "3000" ] ] ] ] ]
+               .= [ [ "hostname" .= "prod-1"; "port" .= 8080 ]
+                    [ "hostname" .= "prod-2"; "port" .= 8081 ] ] ]
+             [ "name" .= "dev"; "servers" .= [ [ "hostname" .= "dev-1"; "port" .= 3000 ] ] ] ] ]
       |> prepareFile "test.yaml"
 
-    dir "." [
-      [ "environments.[name=prod].servers.[hostname=prod-2]" ]
-      |> File.noYamlPaths testOutputPath
-    ]
+    dir
+      "."
+      [ [ "environments.[name=prod].servers.[hostname=prod-2]" ]
+        |> File.noYamlPaths testOutputPath ]
     |> RenderTo.fileSystem tmpDir
 
     let actual = File.ReadAllText testOutputPath
@@ -325,10 +283,7 @@ name: myapp
 
   test "Remove node - scalar with spaces" {
     let testOutputPath, tmpDir =
-      [ "commands"
-        .= [ "npm start"
-             "npm test"
-             "npm run build" ] ]
+      [ "commands" .= [ "npm start"; "npm test"; "npm run build" ] ]
       |> prepareFile "test.yaml"
 
     dir "." [ [ "commands.[\"npm test\"]" ] |> File.noYamlPaths testOutputPath ]
@@ -347,9 +302,7 @@ name: myapp
 
   test "Remove node - array index at root level" {
     let testOutputPath, tmpDir =
-      [ [ "name" .= "first" ]
-        [ "name" .= "second" ]
-        [ "name" .= "third" ] ]
+      [ [ "name" .= "first" ]; [ "name" .= "second" ]; [ "name" .= "third" ] ]
       |> prepareFile "test.yaml"
 
     dir "." [ [ "0" ] |> File.noYamlPaths testOutputPath ]
@@ -368,20 +321,14 @@ name: myapp
   test "Remove node - nested predicate then key" {
     let testOutputPath, tmpDir =
       [ "clusters"
-        .= [ [ "name" .= "us-east"
-               "config"
-               .= [ "replicas" .= "3"
-                    "autoscale" .= "true" ] ]
-             [ "name" .= "eu-west"
-               "config"
-               .= [ "replicas" .= "5"
-                    "autoscale" .= "false" ] ] ] ]
+        .= [ [ "name" .= "us-east"; "config" .= [ "replicas" .= 3; "autoscale" .= true ] ]
+             [ "name" .= "eu-west"; "config" .= [ "replicas" .= 5; "autoscale" .= false ] ] ] ]
       |> prepareFile "test.yaml"
 
-    dir "." [
-      [ "clusters.[name=eu-west].config.autoscale" ]
-      |> File.noYamlPaths testOutputPath
-    ]
+    dir
+      "."
+      [ [ "clusters.[name=eu-west].config.autoscale" ]
+        |> File.noYamlPaths testOutputPath ]
     |> RenderTo.fileSystem tmpDir
 
     let actual = File.ReadAllText testOutputPath

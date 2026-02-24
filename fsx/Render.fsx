@@ -46,9 +46,6 @@ module RenderTo =
           IO.File.WriteAllText(fullP, content ())
           let fileInfo = FileInfo fullP
 
-          if fileInfo.Name = "kustomization.yaml" then
-            Kustomize.fix fileInfo.DirectoryName
-
           printfn "OK"
 
       | Dir(path, ms) ->
@@ -110,7 +107,7 @@ module RenderTo =
         map |> Seq.iter (fun (k, v) -> vars.[k] <- v)
         let output = vars |> Seq.map (fun (KeyValue(k, v)) -> $"{k}={v}")
         IO.File.WriteAllLines(fullP, output)
-      | MergeYzlAt(filePath, func, jsonPath) -> 
+      | MergeYzlAt(filePath, func, jsonPath) ->
         let fullP = fullPath filePath
         printfn $"YamlMergeAt --> %s{fullP} @ %s{jsonPath}"
         fullP |> Yaml.editInPlaceAtPath (func ()) jsonPath
