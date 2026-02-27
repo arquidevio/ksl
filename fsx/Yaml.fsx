@@ -266,7 +266,7 @@ module Yaml =
 
   let saveFile (path: string) (yaml: YamlStream) =
     use file = File.Open(path, FileMode.Create)
-    use writer = new StreamWriter(file)
+    use writer = new StreamWriter(file, NewLine = "\n")
     serializer.Serialize(writer, yaml.Documents.[0].RootNode)
 
   let editInPlace (nodes: Node list) (filePath: string) =

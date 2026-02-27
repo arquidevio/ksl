@@ -36,6 +36,12 @@ module RenderTo =
         | "." -> path
         | pwd -> pwd + "/" + path
 
+      let writeText fullP (text: string) =
+        IO.File.WriteAllText(fullP, text.Replace("\r\n", "\n").Replace("\r", "\n"))
+
+      let writeLines fullP lines =
+        writeText fullP (lines |> Seq.map (fun l -> $"{l}\n") |> String.concat "")
+
       match m with
       | Many ms -> ms |> Seq.iter (fun m -> exec m pwd)
       | File(path, content) ->
@@ -43,9 +49,7 @@ module RenderTo =
 
         if not (IO.File.Exists fullP) then
           printf $"File --> %s{fullP} "
-          IO.File.WriteAllText(fullP, content ())
-          let fileInfo = FileInfo fullP
-
+          writeText fullP (content ())
           printfn "OK"
 
       | Dir(path, ms) ->
@@ -92,8 +96,7 @@ module RenderTo =
         printfn $"Env --> %s{fullP}"
 
         if not (IO.File.Exists fullP) then
-          let output = map |> Seq.map (fun (k, v) -> $"{k}={v}")
-          IO.File.WriteAllLines(fullP, output)
+          writeLines fullP (map |> Seq.map (fun (k, v) -> $"{k}={v}"))
 
       | MergeEnv(path, map) ->
         let fullP = fullPath path
@@ -113,8 +116,7 @@ module RenderTo =
           |> Dictionary<string, string>
 
         map |> Seq.iter (fun (k, v) -> vars.[k] <- v)
-        let output = vars |> Seq.map (fun (KeyValue(k, v)) -> $"{k}={v}")
-        IO.File.WriteAllLines(fullP, output)
+        writeLines fullP (vars |> Seq.map (fun (KeyValue(k, v)) -> $"{k}={v}"))
       | MergeYzlAt(filePath, func, jsonPath) ->
         let fullP = fullPath filePath
         printfn $"YamlMergeAt --> %s{fullP} @ %s{jsonPath}"
