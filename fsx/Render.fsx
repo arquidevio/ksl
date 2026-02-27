@@ -92,7 +92,7 @@ module RenderTo =
         printfn $"Env --> %s{fullP}"
 
         if not (IO.File.Exists fullP) then
-          let output = map |> Map.ofList |> Seq.map (fun (KeyValue(k, v)) -> $"{k}={v}")
+          let output = map |> Seq.map (fun (k, v) -> $"{k}={v}")
           IO.File.WriteAllLines(fullP, output)
 
       | MergeEnv(path, map) ->
