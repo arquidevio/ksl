@@ -87,6 +87,14 @@ module RenderTo =
         printfn $"YamlMerge --> %s{fullP}"
         fullP |> Yaml.editInPlace (func ())
 
+      | CreateEnv(path, map) ->
+        let fullP = fullPath path
+        printfn $"Env --> %s{fullP}"
+
+        if not (IO.File.Exists fullP) then
+          let output = map |> Map.ofList |> Seq.map (fun (KeyValue(k, v)) -> $"{k}={v}")
+          IO.File.WriteAllLines(fullP, output)
+
       | MergeEnv(path, map) ->
         let fullP = fullPath path
         printfn $"EnvMerge --> %s{fullP}"
