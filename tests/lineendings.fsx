@@ -77,6 +77,31 @@ let hasNoCarriageReturn (filePath: string) =
     |> Expect.isTrue (hasNoCarriageReturn testOutputPath)
   }
 
+  test "File.empty - creates an empty file with no carriage returns" {
+    let tmpDir = tmpDir ()
+    let filePath = Path.Combine(tmpDir, "placeholder")
+
+    dir "." [ File.empty filePath ]
+    |> RenderTo.fileSystem tmpDir
+
+    "Should not contain carriage return bytes"
+    |> Expect.isTrue (hasNoCarriageReturn filePath)
+  }
+
+  test "File.mergeEnv - produces LF endings after env merge" {
+    let tmpDir = tmpDir ()
+    let filePath = Path.Combine(tmpDir, ".env")
+
+    dir "." [ File.env filePath [ "FOO", "original"; "BAR", "keep" ] ]
+    |> RenderTo.fileSystem tmpDir
+
+    dir "." [ File.mergeEnv filePath [ "FOO", "updated" ] ]
+    |> RenderTo.fileSystem tmpDir
+
+    "Should not contain carriage return bytes after env merge"
+    |> Expect.isTrue (hasNoCarriageReturn filePath)
+  }
+
   test "File.noYamlPaths - produces LF endings after node removal" {
     let testOutputPath, tmpDir =
       [ "name" .= "test"; "debug" .= true; "version" .= "1.0" ]
