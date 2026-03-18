@@ -350,3 +350,4 @@ name: myapp
   ]
 |> testList "Tests"
 |> runTestsWithCLIArgs [] [||]
+|> exit

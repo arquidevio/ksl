@@ -115,3 +115,4 @@ let hasNoCarriageReturn (filePath: string) =
   } ]
 |> testList "Line Endings Tests"
 |> runTestsWithCLIArgs [] [||]
+|> exit

@@ -63,3 +63,4 @@ open System.IO
   } ]
 |> testList "Env Tests"
 |> runTestsWithCLIArgs [] [||]
+|> exit
