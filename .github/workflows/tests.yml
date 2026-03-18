@@ -35,6 +35,7 @@ jobs:
           key: ${{ steps.cache-tools-restore.outputs.cache-primary-key }}
 
       - name: Run tests
+        shell: bash
         run: |
           dotnet fsy -v run --force tests/tests.fsx
           dotnet fsy -v run --force tests/merge.fsx
