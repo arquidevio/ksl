@@ -265,9 +265,10 @@ module Yaml =
   let private serializer = SerializerBuilder().Build()
 
   let saveFile (path: string) (yaml: YamlStream) =
-    use file = File.Open(path, FileMode.Create)
-    use writer = new StreamWriter(file, NewLine = "\n")
-    serializer.Serialize(writer, yaml.Documents.[0].RootNode)
+    use sw = new System.IO.StringWriter()
+    serializer.Serialize(sw, yaml.Documents.[0].RootNode)
+    let bytes = sw.ToString().Replace("\r\n", "\n") |> System.Text.Encoding.UTF8.GetBytes
+    File.WriteAllBytes(path, bytes)
 
   let editInPlace (nodes: Node list) (filePath: string) =
     let stream = loadFile filePath

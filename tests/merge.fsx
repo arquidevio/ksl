@@ -242,3 +242,4 @@ b: 2
   } ]
 |> testList "Merge Tests"
 |> runTestsWithCLIArgs [] [||]
+|> exit

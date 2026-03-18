@@ -69,3 +69,4 @@ images:
   } ]
 |> testList "Kustomize Tests"
 |> runTestsWithCLIArgs [] [||]
+|> exit
