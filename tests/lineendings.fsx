@@ -66,6 +66,17 @@ let hasNoCarriageReturn (filePath: string) =
     |> Expect.isTrue (hasNoCarriageReturn filePath)
   }
 
+  test "File.env - empty list creates file with no carriage returns" {
+    let tmpDir = tmpDir ()
+    let filePath = Path.Combine(tmpDir, ".env")
+
+    dir "." [ File.env filePath [] ]
+    |> RenderTo.fileSystem tmpDir
+
+    "Should not contain carriage return bytes"
+    |> Expect.isTrue (hasNoCarriageReturn filePath)
+  }
+
   test "File.mergeYzl - produces LF endings after merge" {
     let testOutputPath, tmpDir =
       [ "name" .= "original"; "value" .= 123 ] |> prepareFile "test.yaml"
