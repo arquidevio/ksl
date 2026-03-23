@@ -255,18 +255,33 @@ b: 2
   test "MergeYzlAt - replace scalar at nested predicate path" {
     let testOutputPath, tmpDir =
       [ "patches"
-        .= [ [ "patch" .= "old-value"
+        .= [ [ "patch"
+               .= !|-"""
+                       - op: add
+                         path: /zzz/yy
+                         value: x
+                     """
                "target" .= [ "kind" .= "ServiceAccount"; "name" .= "sa" ] ] ] ]
       |> prepareFile "test.yaml"
 
-    dir "." [ File.mergeYzlAt testOutputPath "patches.[target.name=sa].patch" (Scalar(Str(Plain "new-value"))) ]
+    let newPatch = 
+      ! """ 
+        - op: add
+          path: /zzz/yy
+          value: lobsters
+      """
+
+    dir "." [ File.mergeYzlAt testOutputPath "patches.[target.name=sa].patch" newPatch ]
     |> RenderTo.fileSystem tmpDir
 
     let actual = File.ReadAllText testOutputPath
 
     let expected =
       "patches:
-- patch: new-value
+- patch: |-
+    - op: add
+      path: /zzz/yy
+      value: lobsters
   target:
     kind: ServiceAccount
     name: sa
