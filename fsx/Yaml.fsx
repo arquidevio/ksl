@@ -59,21 +59,29 @@ module Yaml =
     |> Array.toList
 
   let private resolveNestedKey (keyPath: string) (node: YamlNode) =
-    let rec go (parts: string list) (n: YamlNode) =
-      match parts with
-      | [] -> Some n
-      | p :: rest ->
-        match n with
-        | :? YamlMappingNode as m ->
-          let k = YamlScalarNode p
+    match node with
+    | :? YamlMappingNode as m ->
+      let literalKey = YamlScalarNode keyPath
 
-          if m.Children.ContainsKey k then
-            go rest m.Children.[k]
-          else
-            None
-        | _ -> None
+      if m.Children.ContainsKey literalKey then
+        Some m.Children.[literalKey]
+      else
+        let rec go (parts: string list) (n: YamlNode) =
+          match parts with
+          | [] -> Some n
+          | p :: rest ->
+            match n with
+            | :? YamlMappingNode as m ->
+              let k = YamlScalarNode p
 
-    go (keyPath.Split('.') |> Array.toList) node
+              if m.Children.ContainsKey k then
+                go rest m.Children.[k]
+              else
+                None
+            | _ -> None
+
+        go (keyPath.Split('.') |> Array.toList) node
+    | _ -> None
 
   /// Converts Yzl tree into YamlDotNet
   let fromYzl (sourceStart: Mark) (node: Node) =
