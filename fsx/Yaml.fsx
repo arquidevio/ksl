@@ -211,8 +211,8 @@ module Yaml =
 
         s.Style <- SequenceStyle.Block
         s :> YamlNode
-      | Yzl.Core.Scalar _ as z, ScalarNode _ -> z |> fromYzl target.Start
-      | Yzl.Core.Scalar _ as z, null -> z |> fromYzl target.Start
+      | Yzl.Core.Scalar _ as z, ScalarNode _ -> z |> fromYzl (Mark())
+      | Yzl.Core.Scalar _ as z, null -> z |> fromYzl (Mark())
       | a, b -> failwithf "Merge failed. Node type mismatch: %A vs %A" a b
 
     traverse source target None
