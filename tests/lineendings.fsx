@@ -81,8 +81,7 @@ let hasNoCarriageReturn (filePath: string) =
     let tmpDir = tmpDir ()
     let filePath = Path.Combine(tmpDir, "placeholder")
 
-    dir "." [ File.empty filePath ]
-    |> RenderTo.fileSystem tmpDir
+    dir "." [ File.empty filePath ] |> RenderTo.fileSystem tmpDir
 
     "Should not contain carriage return bytes"
     |> Expect.isTrue (hasNoCarriageReturn filePath)

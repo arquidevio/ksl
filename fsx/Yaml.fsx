@@ -58,6 +58,23 @@ module Yaml =
     |> Array.map parseSegment
     |> Array.toList
 
+  let private resolveNestedKey (keyPath: string) (node: YamlNode) =
+    let rec go (parts: string list) (n: YamlNode) =
+      match parts with
+      | [] -> Some n
+      | p :: rest ->
+        match n with
+        | :? YamlMappingNode as m ->
+          let k = YamlScalarNode p
+
+          if m.Children.ContainsKey k then
+            go rest m.Children.[k]
+          else
+            None
+        | _ -> None
+
+    go (keyPath.Split('.') |> Array.toList) node
+
   /// Converts Yzl tree into YamlDotNet
   let fromYzl (sourceStart: Mark) (node: Node) =
     let rec traverse =
@@ -222,17 +239,12 @@ module Yaml =
           let matchingNode =
             s.Children
             |> Seq.tryFind (fun child ->
-              match child with
-              | MapNode m ->
-                let searchKey = YamlScalarNode key
-
-                if m.Children.ContainsKey searchKey then
-                  match m.Children.[searchKey] with
-                  | ScalarNode scalar when scalar.Value = value -> true
-                  | _ -> false
-                else
-                  false
-              | _ -> false)
+              resolveNestedKey key child
+              |> Option.map (fun n ->
+                match n with
+                | ScalarNode scalar -> scalar.Value = value
+                | _ -> false)
+              |> Option.defaultValue false)
 
           match matchingNode with
           | Some n -> navigateTo n rest
@@ -267,7 +279,10 @@ module Yaml =
   let saveFile (path: string) (yaml: YamlStream) =
     use sw = new System.IO.StringWriter()
     serializer.Serialize(sw, yaml.Documents.[0].RootNode)
-    let bytes = sw.ToString().Replace("\r\n", "\n") |> System.Text.Encoding.UTF8.GetBytes
+
+    let bytes =
+      sw.ToString().Replace("\r\n", "\n") |> System.Text.Encoding.UTF8.GetBytes
+
     File.WriteAllBytes(path, bytes)
 
   let editInPlace (nodes: Node list) (filePath: string) =
@@ -297,9 +312,12 @@ module Yaml =
             |> Seq.tryFindIndex (fun child ->
               match child with
               | :? YamlMappingNode as m when predKey <> null ->
-                match m.Children.TryGetValue(YamlScalarNode predKey) with
-                | true, v when (v :?> YamlScalarNode).Value = predVal -> true
-                | _ -> false
+                resolveNestedKey predKey (m :> YamlNode)
+                |> Option.map (fun n ->
+                  match n with
+                  | ScalarNode scalar -> scalar.Value = predVal
+                  | _ -> false)
+                |> Option.defaultValue false
               | :? YamlScalarNode as s when predKey = null -> s.Value = predVal
               | _ -> false)
 
@@ -374,9 +392,12 @@ module Yaml =
             |> Seq.tryFind (fun child ->
               match child with
               | :? YamlMappingNode as m ->
-                match m.Children.TryGetValue(YamlScalarNode predKey) with
-                | true, v when (v :?> YamlScalarNode).Value = predVal -> true
-                | _ -> false
+                resolveNestedKey predKey (m :> YamlNode)
+                |> Option.map (fun n ->
+                  match n with
+                  | ScalarNode scalar -> scalar.Value = predVal
+                  | _ -> false)
+                |> Option.defaultValue false
               | _ -> false)
           | _ -> failwith "Predicate requires sequence"
 
@@ -394,9 +415,12 @@ module Yaml =
           |> Seq.tryFind (fun child ->
             match child with
             | :? YamlMappingNode as m ->
-              match m.Children.TryGetValue(YamlScalarNode predKey) with
-              | true, v when (v :?> YamlScalarNode).Value = predVal -> true
-              | _ -> false
+              resolveNestedKey predKey (m :> YamlNode)
+              |> Option.map (fun n ->
+                match n with
+                | ScalarNode scalar -> scalar.Value = predVal
+                | _ -> false)
+              |> Option.defaultValue false
             | _ -> false)
 
         match next with

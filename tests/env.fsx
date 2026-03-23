@@ -43,19 +43,16 @@ open System.IO
 
     let actual = File.ReadAllText filePath
 
-    "Should leave existing file unchanged"
-    |> Expect.equal actual "EXISTING=value\n"
+    "Should leave existing file unchanged" |> Expect.equal actual "EXISTING=value\n"
   }
 
   test "CreateEnv - handles empty map" {
     let tmpDir = tmpDir ()
     let filePath = Path.Combine(tmpDir, ".env")
 
-    dir "." [ File.env filePath [] ]
-    |> RenderTo.fileSystem tmpDir
+    dir "." [ File.env filePath [] ] |> RenderTo.fileSystem tmpDir
 
-    "Should create the file"
-    |> Expect.isTrue (File.Exists filePath)
+    "Should create the file" |> Expect.isTrue (File.Exists filePath)
 
     let actual = File.ReadAllLines filePath
 

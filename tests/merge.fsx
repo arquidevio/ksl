@@ -220,6 +220,38 @@ b: 2
     "Should merge into sequence item by predicate" |> Expect.equal actual expected
   }
 
+  test "MergeYzlAt - nested predicate key path" {
+    let testOutputPath, tmpDir =
+      [ "patches"
+        .= [ [ "patch" .= "original-patch"
+               "target" .= [ "kind" .= "ServiceAccount"; "name" .= "sa" ] ]
+             [ "patch" .= "other-patch"
+               "target" .= [ "kind" .= "ServiceAccount"; "name" .= "other" ] ] ] ]
+      |> prepareFile "test.yaml"
+
+    let mergeYzl = ![ "patch" .= "updated-patch" ]
+
+    dir "." [ File.mergeYzlAt testOutputPath "patches.[target.name=sa]" mergeYzl ]
+    |> RenderTo.fileSystem tmpDir
+
+    let actual = File.ReadAllText testOutputPath
+
+    let expected =
+      "patches:
+- patch: updated-patch
+  target:
+    kind: ServiceAccount
+    name: sa
+- patch: other-patch
+  target:
+    kind: ServiceAccount
+    name: other
+"
+
+    "Should merge into patches item matched by nested predicate target.name"
+    |> Expect.equal actual expected
+  }
+
   test "Merge into empty sequence uses block style" {
     let testOutputPath, tmpDir =
       items [] // empty sequence
