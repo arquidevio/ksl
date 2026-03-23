@@ -226,7 +226,7 @@ module Yaml =
 
     let rec navigateTo (node: YamlNode) (segs: (string option * (string * string) option) list) =
       match segs with
-      | [] -> node
+      | [] -> mergeFromYzl source node |> ignore
       | seg :: rest ->
         match node, seg with
 
@@ -234,19 +234,26 @@ module Yaml =
           let key = YamlScalarNode propName
 
           if m.Children.ContainsKey key then
-            navigateTo m.Children.[key] rest
+            if List.isEmpty rest then
+              m.Children.[key] <- mergeFromYzl source m.Children.[key]
+            else
+              navigateTo m.Children.[key] rest
           else
             failwithf "Path not found: property '%s' does not exist" propName
 
         | SeqNode s, (Some idx, None) ->
           match System.Int32.TryParse idx with
-          | true, index when index >= 0 && index < s.Children.Count -> navigateTo s.Children.[index] rest
+          | true, index when index >= 0 && index < s.Children.Count ->
+            if List.isEmpty rest then
+              s.Children.[index] <- mergeFromYzl source s.Children.[index]
+            else
+              navigateTo s.Children.[index] rest
           | _ -> failwithf "Invalid array index: '%s' (length %d)" idx s.Children.Count
 
         | SeqNode s, (None, Some(key, value)) when key <> null ->
-          let matchingNode =
+          let matchingIdx =
             s.Children
-            |> Seq.tryFind (fun child ->
+            |> Seq.tryFindIndex (fun child ->
               resolveNestedKey key child
               |> Option.map (fun n ->
                 match n with
@@ -254,26 +261,33 @@ module Yaml =
                 | _ -> false)
               |> Option.defaultValue false)
 
-          match matchingNode with
-          | Some n -> navigateTo n rest
+          match matchingIdx with
+          | Some idx ->
+            if List.isEmpty rest then
+              s.Children.[idx] <- mergeFromYzl source s.Children.[idx]
+            else
+              navigateTo s.Children.[idx] rest
           | None -> failwithf "Sequence item with '%s=%s' not found" key value
 
         | SeqNode s, (None, Some(nullKey, value)) when nullKey = null ->
-          let matchingNode =
+          let matchingIdx =
             s.Children
-            |> Seq.tryFind (fun child ->
+            |> Seq.tryFindIndex (fun child ->
               match child with
               | ScalarNode scalar when scalar.Value = value -> true
               | _ -> false)
 
-          match matchingNode with
-          | Some n -> navigateTo n rest
+          match matchingIdx with
+          | Some idx ->
+            if List.isEmpty rest then
+              s.Children.[idx] <- mergeFromYzl source s.Children.[idx]
+            else
+              navigateTo s.Children.[idx] rest
           | None -> failwithf "Sequence item matching '%s' not found" value
 
         | _ -> failwithf "Path navigation failed: type mismatch at segment %A on node type %A" seg (node.GetType().Name)
 
-    let targetAtPath = navigateTo target segments
-    mergeFromYzl source targetAtPath |> ignore
+    navigateTo target segments
 
   let loadFile (path: string) =
     use file = File.OpenRead path

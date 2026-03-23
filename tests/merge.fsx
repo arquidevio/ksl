@@ -252,6 +252,30 @@ b: 2
     |> Expect.equal actual expected
   }
 
+  test "MergeYzlAt - replace scalar at nested predicate path" {
+    let testOutputPath, tmpDir =
+      [ "patches"
+        .= [ [ "patch" .= "old-value"
+               "target" .= [ "kind" .= "ServiceAccount"; "name" .= "sa" ] ] ] ]
+      |> prepareFile "test.yaml"
+
+    dir "." [ File.mergeYzlAt testOutputPath "patches.[target.name=sa].patch" (Scalar(Str(Plain "new-value"))) ]
+    |> RenderTo.fileSystem tmpDir
+
+    let actual = File.ReadAllText testOutputPath
+
+    let expected =
+      "patches:
+- patch: new-value
+  target:
+    kind: ServiceAccount
+    name: sa
+"
+
+    "Should replace scalar at patches.[target.name=sa].patch"
+    |> Expect.equal actual expected
+  }
+
   test "Merge into empty sequence uses block style" {
     let testOutputPath, tmpDir =
       items [] // empty sequence
