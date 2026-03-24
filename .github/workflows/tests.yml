@@ -19,7 +19,7 @@ jobs:
 
       - name: Restore Dotnet Tools Cache
         id: cache-tools-restore
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@v5
         with:
           path: ~/.nuget
           key: ${{ runner.os }}-dotnet-${{ hashFiles('**/.config/dotnet-tools.json') }}
@@ -29,7 +29,7 @@ jobs:
 
       - name: Save Dotnet Tools Cache
         id: cache-tools-save
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@v5
         with:
           path: ~/.nuget
           key: ${{ steps.cache-tools-restore.outputs.cache-primary-key }}
