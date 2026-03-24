@@ -117,17 +117,22 @@ module Yaml =
           | Float x -> x |> string |> YamlScalarNode
           | Str s ->
             let format (p: string) =
-              let indent = String.replicate (sourceStart.Column |> int) "  "
-
-              p.Trim().Split "\n"
-              |> Seq.mapi (fun i x ->
-                match i, x with
-                | 0, x -> x
-                | i, x -> $"{indent}{x.Trim()}")
+              let lines = p.Split "\n"
+              let nonEmpty = lines |> Array.filter (fun x -> x.Trim() <> "")
+              let baseIndent =
+                if nonEmpty.Length = 0 then 0
+                else nonEmpty |> Array.map (fun x -> x.Length - x.TrimStart().Length) |> Array.min
+              lines
+              |> Array.map (fun x -> if x.Trim() = "" then "" else x.[baseIndent..])
+              |> Array.skipWhile (fun x -> x = "")
+              |> fun arr -> arr |> Array.rev |> Array.skipWhile (fun x -> x = "") |> Array.rev
               |> String.concat "\n"
 
             match s with
-            | Plain p -> p |> format |> YamlScalarNode
+            | Plain p ->
+              let formatted = p |> format
+              let node = formatted |> YamlScalarNode
+              if formatted.Contains "\n" then node |> withStyle ScalarStyle.Literal else node
             | FoldedStrip p -> p |> format |> YamlScalarNode |> withStyle ScalarStyle.Folded
             | FoldedKeep p -> p |> format |> YamlScalarNode |> withStyle ScalarStyle.Folded
             | Folded p -> p |> format |> YamlScalarNode |> withStyle ScalarStyle.Folded
